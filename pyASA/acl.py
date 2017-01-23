@@ -36,12 +36,32 @@ class ACL(object):
         else:
             raise ValueError(f"{type(objectid)} is not a valid rule argument type")
 
-    def get_rules(self, acl: str) -> dict:
+    def delete_rules(self, acl: str, objectids: [None, list] = None, save_config: bool = False):
+        data = []
+        if not isinstance(acl, str):
+            raise ValueError(f"{type(acl)} is not a valid acl argument type")
+        if not isinstance(objectids, (type(None), list)):
+            raise ValueError(f"{type(acl)} is not a valid objectids argument type")
+        if objectids is None:
+            rules = self.get_rules(acl)
+            objectids = [rule.objectid for rule in rules]
+        for objectid in objectids:
+            if isinstance(objectid, int):
+                data.append({"resourceUri": f"/api/objects/extendedacls/{acl}/aces/{objectid}", "method": "Delete"})
+            else:
+                raise ValueError(f"{type(objectid)} is not a valid objectid argument type")
+        response = self._caller.post("", data)
+        if response.status_code == requests.codes.ok:
+            if save_config:
+                self._caller.save_config()
+        else:
+            raise RuntimeError(
+                f"Bulk rule deletion of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()['commonMessages'][0]['code']}")
+
+    def get_rules(self, acl: str) -> list:
         response = self._caller.get(f"objects/extendedacls/{acl}/aces")
         if response.status_code == requests.codes.ok:
-            rules = {}
-            for entry in response.json()["items"]:
-                rules[entry["position"]] = rule_from_dict(entry)
+            rules = [rule_from_dict(entry) for entry in response.json()["items"]]
             return rules
         elif response.status_code == requests.codes.not_found:
             raise ValueError(f"ACL {acl} not found")
@@ -92,6 +112,5 @@ class ACL(object):
             if save_config:
                 self._caller.save_config()
         else:
-            print(response.json())
             raise RuntimeError(
                 f"Bulk rule creation of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()['commonMessages'][0]['code']}")
