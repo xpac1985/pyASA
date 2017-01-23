@@ -1,11 +1,13 @@
 import copy
+import re
 from enum import Enum
+
 from netaddr import IPAddress, IPNetwork
+
 from pyASA.address import BaseAddress, Address, AnyAddress
 from pyASA.aliases import Aliases
 from pyASA.baseconfigobject import BaseConfigObject
-from pyASA.rulelogging import RuleLogging, LogLevel
-import re
+from pyASA.rulelogging import RuleLogging
 
 
 class ServiceComparator(Enum):

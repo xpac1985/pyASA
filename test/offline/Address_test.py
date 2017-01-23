@@ -1,5 +1,5 @@
 import json
-from netaddr import AddrFormatError
+
 import pytest
 
 from pyASA.address import AnyAddress, Address

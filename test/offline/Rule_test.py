@@ -1,9 +1,9 @@
 import pytest
-from netaddr import IPNetwork, AddrFormatError
+from netaddr import IPNetwork
 
 from pyASA.address import Address
-from pyASA.rulelogging import RuleLogging, LogLevel
 from pyASA.rule import rule_from_dict, RuleGeneric, RuleTCPUDP, RuleICMP, ServiceComparator
+from pyASA.rulelogging import RuleLogging, LogLevel
 
 
 class Test_RuleGeneric(object):
