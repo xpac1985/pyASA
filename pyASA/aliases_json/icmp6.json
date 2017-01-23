@@ -1,0 +1,18 @@
+{
+  "any": -1,
+  "unreachable": 1,
+  "packet-too-big": 2,
+  "time-exceeded": 3,
+  "parameter-problem": 4,
+  "echo": 128,
+  "echo-reply": 129,
+  "membership-query": 130,
+  "membership-report": 131,
+  "membership-reduction": 132,
+  "router-solicitation": 133,
+  "router-advertisement": 134,
+  "neighbor-solicitation": 135,
+  "neighbor-advertisement": 136,
+  "neighbor-redirect": 137,
+  "router-renumbering": 138
+}

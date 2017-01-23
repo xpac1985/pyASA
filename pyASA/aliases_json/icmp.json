@@ -1,0 +1,21 @@
+{
+  "any": -1,
+  "echo-reply": 0,
+  "unreachable": 3,
+  "source-quench": 4,
+  "redirect": 5,
+  "alternate-address": 6,
+  "echo": 8,
+  "router-advertisement": 9,
+  "router-solicitation": 10,
+  "time-exceeded": 11,
+  "parameter-problem": 12,
+  "timestamp-request": 13,
+  "timestamp-reply": 14,
+  "information-request": 15,
+  "information-reply": 16,
+  "mask-request": 17,
+  "mask-reply": 18,
+  "conversion-error": 31,
+  "mobile-redirect": 32
+}
