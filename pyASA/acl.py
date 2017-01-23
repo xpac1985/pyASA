@@ -19,20 +19,22 @@ class ACL(object):
         elif response.status_code == requests.codes.not_found:
             return False
         else:
-            raise RuntimeError(f"ACL exists check for acl {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
+            raise RuntimeError(
+                f"ACL exists check for acl {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
 
-    def delete_rule(self, acl: str, objectid: int):
+    def delete_rule(self, acl: str, objectid: int, save_config: bool = False):
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         if isinstance(objectid, int):
             response = self._caller.delete(f"objects/extendedacls/{acl}/aces/{objectid}")
             if response.status_code == requests.codes.no_content:
-                print(f"Rule {objectid} successfully deleted")
+                if save_config:
+                    self._caller.save_config()
             else:
                 raise RuntimeError(
                     f"Deletion of ACL {acl} rule {objectid} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
         else:
-            raise ValueError(f"{type(rule)} is not a valid rule argument type")
+            raise ValueError(f"{type(objectid)} is not a valid rule argument type")
 
     def get_acl(self, acl: str) -> dict:
         response = self._caller.get(f"objects/extendedacls/{acl}/aces")
@@ -56,12 +58,13 @@ class ACL(object):
             raise RuntimeError(
                 f"Requesting ACL names failedfailed with HTTP {response.status_code}: {response.json()['messages']['details']}")
 
-    def append_rule(self, acl: str, rule: RuleGeneric):
+    def append_rule(self, acl: str, rule: RuleGeneric, save_config: bool = False):
         if isinstance(rule, RuleGeneric):
             if isinstance(acl, str):
                 response = self._caller.post(f"objects/extendedacls/{acl}/aces", rule.to_dict())
                 if response.status_code == requests.codes.created:
-                    print("Rule successfully created")
+                    if save_config:
+                        self._caller.save_config()
                 elif response.status_code == requests.codes.bad_request and response.json()["messages"][
                     "code"] == "DUPLICATE":
                     raise ValueError(
@@ -74,7 +77,7 @@ class ACL(object):
         else:
             raise ValueError(f"{type(rule)} is not a valid rule argument type")
 
-    def append_rules(self, acl: str, rules: [RuleGeneric]):
+    def append_rules(self, acl: str, rules: [RuleGeneric], save_config: bool = False):
         data = []
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
@@ -84,10 +87,10 @@ class ACL(object):
                     {"resourceUri": f"/api/objects/extendedacls/{acl}/aces", "data": rule.to_dict(), "method": "Post"})
             else:
                 raise ValueError(f"{type(rule)} is not a valid rule argument type")
-        print(data)
         response = self._caller.post("", data)
         if response.status_code == requests.codes.ok:
-            print("Bulk rule creation successful")
+            if save_config:
+                self._caller.save_config()
         else:
             print(response.json())
             raise RuntimeError(
