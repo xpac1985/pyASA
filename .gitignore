@@ -92,3 +92,4 @@ ENV/
 .idea/**
 
 Test Szenario.txt
+pyASA/testme.py
