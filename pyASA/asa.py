@@ -1,6 +1,6 @@
 import logging
 import re
-import requests.status_codes
+
 from netaddr import IPAddress
 
 from pyASA.acl import ACL
@@ -25,7 +25,7 @@ class ASA(object):
         self._debug = False
         self._timeout = 10
 
-        self.caller = None
+        self._caller = None
         self.host = host
         self.user = user
         self.password = password
@@ -35,8 +35,8 @@ class ASA(object):
         self.validate_cert = validate_cert
         self.debug = debug
         self.timeout = timeout
-        self.caller = Caller(self.baseurl, self._http_auth, self.validate_cert, self.debug, self.timeout)
-        self.acl = ACL(self.caller)
+        self._caller = Caller(self.baseurl, self._http_auth, self.validate_cert, self.debug, self.timeout)
+        self.acl = ACL(self._caller)
 
     ### Property getter and setter ###
 
@@ -49,8 +49,8 @@ class ASA(object):
         temp_host = str(host).strip()
         if ASA._validate_hostname(temp_host) or ASA._validate_ip(temp_host):
             self._host = temp_host
-            if self.caller:
-                self.caller.update(baseurl=self.baseurl)
+            if self._caller:
+                self._caller.update(baseurl=self.baseurl)
         else:
             raise ValueError(f"String '{temp_host}' is not a valid hostname or IP address.")
 
@@ -61,8 +61,8 @@ class ASA(object):
     @user.setter
     def user(self, user: str):
         self._user = str(user).strip()
-        if self.caller:
-            self.caller.update(http_auth=self._http_auth)
+        if self._caller:
+            self._caller.update(http_auth=self._http_auth)
 
     @property
     def password(self) -> str:
@@ -71,8 +71,8 @@ class ASA(object):
     @password.setter
     def password(self, password: str):
         self._password = str(password).strip()
-        if self.caller:
-            self.caller.update(http_auth=self._http_auth)
+        if self._caller:
+            self._caller.update(http_auth=self._http_auth)
 
     @property
     def use_https(self) -> bool:
@@ -81,8 +81,8 @@ class ASA(object):
     @use_https.setter
     def use_https(self, use_https: bool):
         self._use_https = bool(use_https)
-        if self.caller:
-            self.caller.update(baseurl=self.baseurl)
+        if self._caller:
+            self._caller.update(baseurl=self.baseurl)
 
     @property
     def port(self) -> int:
@@ -92,8 +92,8 @@ class ASA(object):
     def port(self, port: int):
         if 1 <= int(port) <= 65535:
             self._port = int(port)
-            if self.caller:
-                self.caller.update(baseurl=self.baseurl)
+            if self._caller:
+                self._caller.update(baseurl=self.baseurl)
         else:
             raise ValueError(f"{port} is outside of valid port range 1 - 65535")
 
@@ -118,8 +118,8 @@ class ASA(object):
                     self._url_prefix = f"/{temp_url_prefix}"
                 else:
                     self._url_prefix = f"/{temp_url_prefix}[:-1]"
-        if self.caller:
-            self.caller.update(baseurl=self.baseurl)
+        if self._caller:
+            self._caller.update(baseurl=self.baseurl)
 
     @property
     def validate_cert(self) -> bool:
@@ -128,8 +128,8 @@ class ASA(object):
     @validate_cert.setter
     def validate_cert(self, validate_cert: bool):
         self._validate_cert = bool(validate_cert)
-        if self.caller:
-            self.caller.update(validate_cert=self.validate_cert)
+        if self._caller:
+            self._caller.update(validate_cert=self.validate_cert)
 
     @property
     def debug(self) -> bool:
@@ -138,8 +138,8 @@ class ASA(object):
     @debug.setter
     def debug(self, debug: bool):
         self._debug = bool(debug)
-        if self.caller:
-            self.caller.update(debug=self.debug)
+        if self._caller:
+            self._caller.update(debug=self.debug)
 
     @property
     def timeout(self) -> int:
@@ -149,8 +149,8 @@ class ASA(object):
     def timeout(self, timeout: int):
         if 0.001 <= int(timeout) <= 300:
             self._timeout = int(timeout)
-            if self.caller:
-                self.caller.update(timeout=self.timeout)
+            if self._caller:
+                self._caller.update(timeout=self.timeout)
         else:
             raise ValueError(f"{timeout} is outside of valid timeout range 0.001 - 300 seconds")
 
@@ -170,22 +170,17 @@ class ASA(object):
         return self.user, self.password
 
     ### Functions ###
+    
+    def get_management_access_info(self) -> dict:
+        r = self._caller.get("mgmtaccess")
+        return r.json()
 
     def test_connection(self) -> bool:
         if self.use_https and self.port == 80:
             self._logger.warning("You are using HTTPS with port 80. This is most likely not correct.")
         if not self.use_https and self.port == 443:
             self._logger.warning("You are using HTTP with port 443. This is most likely not correct.")
-        r = self.caller.get("mgmtaccess")
-        return r.status_code == requests.codes.ok
-
-    def get_management_access_info(self) -> dict:
-        r = self.caller.get("mgmtaccess")
-        return r.json()
-
-    def save_config(self) -> bool:
-        r = self.caller.post("commands/writemem")
-        return r.status_code == requests.codes.ok
+        return self._caller.test_connection()
 
     @staticmethod
     def _validate_hostname(hostname: str) -> bool:
@@ -193,6 +188,7 @@ class ASA(object):
             r"(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?")
         return bool(hostname_regex.fullmatch(hostname))
 
+    # noinspection PyBroadException
     @staticmethod
     def _validate_ip(ip: str) -> bool:
         try:

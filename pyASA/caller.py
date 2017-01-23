@@ -67,3 +67,11 @@ class Caller(object):
         self.logger.debug(f"POST HTTP response code {response.status_code}, history {response.history}, header {response.headers}")
         self.logger.debug(f"POST {response.text}")
         return response
+
+    def test_connection(self) -> bool:
+        r = self.get("mgmtaccess")
+        return r.status_code == requests.codes.ok
+
+    def save_config(self) -> bool:
+        r = self.post("commands/writemem")
+        return r.status_code == requests.codes.ok
