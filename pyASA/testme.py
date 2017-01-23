@@ -8,7 +8,7 @@ print("START Test")
 asa = ASA("bespin.areafunky.net", user="admin", password="cisco", port=41443, use_https=True, url_prefix="/",
           validate_cert=True, debug=True)
 if asa.test_connection():
-    print(asa.acl.get_acl_list())
+    print(asa.acl.get_acls())
     # print(asa.acl.get_acl("TEST"))#
 
     # rule = RuleTCPUDP()
@@ -25,9 +25,9 @@ if asa.test_connection():
     #     rules.append(rule)
     # # rules.append(rule)
     # asa.acl.append_rules("ALIASES-UDP", rules)
-    if asa.acl.exists_acl("ALIASES-UDP"):
-        rules = asa.acl.get_acl("ALIASES-UDP")
-        # print(rules)
+
+    if asa.acl.exists("ALIASES-UDP"):
+        rules = asa.acl.get_rules("ALIASES-UDP")
         objectids = [rule.objectid for __, rule in rules.items()]
         for objectid in objectids:
             asa.acl.delete_rule("ALIASES-UDP", objectid)

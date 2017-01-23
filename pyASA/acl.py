@@ -5,12 +5,12 @@ import requests.status_codes
 
 class ACL(object):
     def __init__(self, caller: Caller):
-        if type(caller) is Caller:
+        if isinstance(caller, Caller):
             self._caller = caller
         else:
-            ValueError("argument asa must be of type of ASA")
+            ValueError(f"{type(caller)} is not a valid caller argument type")
 
-    def exists_acl(self, acl: str) -> bool:
+    def exists(self, acl: str) -> bool:
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         response = self._caller.get(f"objects/extendedacls/{acl}")
@@ -36,7 +36,7 @@ class ACL(object):
         else:
             raise ValueError(f"{type(objectid)} is not a valid rule argument type")
 
-    def get_acl(self, acl: str) -> dict:
+    def get_rules(self, acl: str) -> dict:
         response = self._caller.get(f"objects/extendedacls/{acl}/aces")
         if response.status_code == requests.codes.ok:
             rules = {}
@@ -49,7 +49,7 @@ class ACL(object):
             raise RuntimeError(
                 f"Requesting ACL {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
 
-    def get_acl_list(self) -> list:
+    def get_acls(self) -> list:
         response = self._caller.get("objects/extendedacls")
         if response.status_code == requests.codes.ok:
             names = [entry["name"] for entry in response.json()["items"]]
