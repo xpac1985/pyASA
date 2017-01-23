@@ -5,6 +5,7 @@ setup(
   version = '0.0.2',
   description = 'Wrapper for the Cisco ASA REST API',
   author = 'xpac',
+  author_email = 'bjoern@areafunky.net',
   url = 'https://github.com/xpac1985/pyASA', # use the URL to the github repo
   download_url = 'https://github.com/xpac1985/pyASA/tarball/0.0.2', # I'll explain this in a second
   keywords = ['cisco', 'asa', 'rest-api', 'wrapper', 'alpha'], # arbitrary keywords
