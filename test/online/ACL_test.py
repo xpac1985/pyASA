@@ -5,7 +5,6 @@ import pytest
 from random import randint, getrandbits, choice
 from test.online import settings
 
-@pytest.mark.slow
 @pytest.mark.skipif(not settings.online, reason="ASA not available for online tests")
 class Test_ACL(object):
     @pytest.fixture(scope="class")
