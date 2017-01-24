@@ -93,3 +93,4 @@ ENV/
 
 Test Szenario.txt
 pyASA/testme.py
+/test/online/settings.py
