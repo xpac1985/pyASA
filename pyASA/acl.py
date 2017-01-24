@@ -59,8 +59,8 @@ class ACL(object):
                 f"Bulk rule deletion of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()}")
 
     def get_rules(self, acl: str) -> list:
-        total = 0
-        count = -1
+        total = 1
+        count = 0
         rules = []
         while count < total:
             response = self._caller.get(f"objects/extendedacls/{acl}/aces", {"offset": count})
@@ -86,38 +86,44 @@ class ACL(object):
                 f"Requesting ACL names failedfailed with HTTP {response.status_code}: {response.json()}")
 
     def append_rule(self, acl: str, rule: RuleGeneric, save_config: bool = False):
-        if isinstance(rule, RuleGeneric):
-            if isinstance(acl, str):
-                response = self._caller.post(f"objects/extendedacls/{acl}/aces", rule.to_dict())
-                if response.status_code == requests.codes.created:
-                    if save_config:
-                        self._caller.save_config()
-                elif response.status_code == requests.codes.bad_request and response.json()["messages"][
-                    "code"] == "DUPLICATE":
-                    raise ValueError(
-                        f"Rule creation denied because rule is duplicate of rule object {response.json()['messages']['details']}")
-                else:
-                    raise RuntimeError(
-                        f"Appending rule to ACL {acl} failed with HTTP {response.status_code}: {response.json()}")
-            else:
-                raise ValueError(f"{type(acl)} is not a valid acl argument type")
-        else:
-            raise ValueError(f"{type(rule)} is not a valid rule argument type")
-
-    def append_rules(self, acl: str, rules: [RuleGeneric], save_config: bool = False):
-        data = []
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
-        for rule in rules:
-            if isinstance(rule, RuleGeneric):
-                data.append(
-                    {"resourceUri": f"/api/objects/extendedacls/{acl}/aces", "data": rule.to_dict(), "method": "Post"})
-            else:
-                raise ValueError(f"{type(rule)} is not a valid rule argument type")
-        response = self._caller.post("", data)
-        if response.status_code == requests.codes.ok:
+        if not isinstance(rule, RuleGeneric):
+            raise ValueError(f"{type(rule)} is not a valid rule argument type")
+        response = self._caller.post(f"objects/extendedacls/{acl}/aces", rule.to_dict())
+        if response.status_code == requests.codes.created:
             if save_config:
                 self._caller.save_config()
+        elif response.status_code == requests.codes.bad_request and response.json()["messages"][
+            "code"] == "DUPLICATE":
+            raise ValueError(
+                f"Rule creation denied because rule is duplicate of rule object {response.json()['messages']['details']}")
         else:
             raise RuntimeError(
-                f"Bulk rule creation of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()}")
+                f"Appending rule to ACL {acl} failed with HTTP {response.status_code}: {response.json()}")
+
+    def append_rules(self, acl: str, rules: [RuleGeneric], save_config: bool = False):
+        if not isinstance(acl, str):
+            raise ValueError(f"{type(acl)} is not a valid acl argument type")
+        if not isinstance(rules, list):
+            raise ValueError(f"{type(rules)} is not a valid rules argument type")
+        if not all([isinstance(rule, RuleGeneric) for rule in rules]):
+            raise ValueError("rules argument list contains invalid objects")
+        count = 0
+        total = len(rules)
+        while count < total:
+            data = []
+            _rules = rules[count:count + 100]
+            for rule in _rules:
+                data.append(
+                    {"resourceUri": f"/api/objects/extendedacls/{acl}/aces", "data": rule.to_dict(), "method": "Post"})
+            response = self._caller.post("", data)
+            if response.status_code == requests.codes.server_error:
+                raise RuntimeError(
+                    f"Bulk rule creation of {len(rules)} rules failed in step {count}-{total if total < count+100 else count+100} with HTTP {response.status_code}")
+            elif response.status_code != requests.codes.ok:
+                raise RuntimeError(
+                    f"Bulk rule creation of {len(rules)} rules failed in step {count}-{total if total < count+100 else count+100} with HTTP {response.status_code}: {response.json()}")
+            count += 100
+        if save_config:
+            self._caller.save_config()
