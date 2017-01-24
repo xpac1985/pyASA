@@ -59,15 +59,22 @@ class ACL(object):
                 f"Bulk rule deletion of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()}")
 
     def get_rules(self, acl: str) -> list:
-        response = self._caller.get(f"objects/extendedacls/{acl}/aces")
-        if response.status_code == requests.codes.ok:
-            rules = [rule_from_dict(entry) for entry in response.json()["items"]]
-            return rules
-        elif response.status_code == requests.codes.not_found:
-            raise ValueError(f"ACL {acl} not found")
-        else:
-            raise RuntimeError(
-                f"Requesting ACL {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
+        total = 0
+        count = -1
+        rules = []
+        while count < total:
+            response = self._caller.get(f"objects/extendedacls/{acl}/aces", {"offset": count})
+            response_json = response.json()
+            if response.status_code == requests.codes.ok:
+                total = response_json["rangeInfo"]["total"]
+                count = response_json["rangeInfo"]["offset"] + response_json["rangeInfo"]["limit"]
+                rules += [rule_from_dict(entry) for entry in response_json["items"]]
+            elif response.status_code == requests.codes.not_found:
+                raise ValueError(f"ACL {acl} not found")
+            else:
+                raise RuntimeError(
+                    f"Requesting ACL {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
+        return rules
 
     def get_acls(self) -> list:
         response = self._caller.get("objects/extendedacls")
