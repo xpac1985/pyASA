@@ -20,7 +20,7 @@ class ACL(object):
             return False
         else:
             raise RuntimeError(
-                f"ACL exists check for acl {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
+                f"ACL exists check for acl {acl} failed with HTTP {response.status_code}: {response.json()}")
 
     def delete_rule(self, acl: str, objectid: int, save_config: bool = False):
         if not isinstance(acl, str):
@@ -32,7 +32,7 @@ class ACL(object):
                     self._caller.save_config()
             else:
                 raise RuntimeError(
-                    f"Deletion of ACL {acl} rule {objectid} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
+                    f"Deletion of ACL {acl} rule {objectid} failed with HTTP {response.status_code}: {response.json()}")
         else:
             raise ValueError(f"{type(objectid)} is not a valid rule argument type")
 
@@ -56,7 +56,7 @@ class ACL(object):
                 self._caller.save_config()
         else:
             raise RuntimeError(
-                f"Bulk rule deletion of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()['commonMessages'][0]['code']}")
+                f"Bulk rule deletion of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()}")
 
     def get_rules(self, acl: str) -> list:
         response = self._caller.get(f"objects/extendedacls/{acl}/aces")
@@ -76,7 +76,7 @@ class ACL(object):
             return names
         else:
             raise RuntimeError(
-                f"Requesting ACL names failedfailed with HTTP {response.status_code}: {response.json()['messages']['details']}")
+                f"Requesting ACL names failedfailed with HTTP {response.status_code}: {response.json()}")
 
     def append_rule(self, acl: str, rule: RuleGeneric, save_config: bool = False):
         if isinstance(rule, RuleGeneric):
@@ -91,7 +91,7 @@ class ACL(object):
                         f"Rule creation denied because rule is duplicate of rule object {response.json()['messages']['details']}")
                 else:
                     raise RuntimeError(
-                        f"Appending rule to ACL {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
+                        f"Appending rule to ACL {acl} failed with HTTP {response.status_code}: {response.json()}")
             else:
                 raise ValueError(f"{type(acl)} is not a valid acl argument type")
         else:
@@ -113,4 +113,4 @@ class ACL(object):
                 self._caller.save_config()
         else:
             raise RuntimeError(
-                f"Bulk rule creation of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()['commonMessages'][0]['code']}")
+                f"Bulk rule creation of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()}")
