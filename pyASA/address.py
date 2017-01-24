@@ -60,4 +60,9 @@ class Address(BaseAddress, IPNetwork):
             raise ValueError(f"Object of kind '{data['kind']}' not supported")
 
     def to_dict(self):
-        return dict(kind=f"IPv{self.version}Network", value=str(self.cidr))
+        if (self.version == 4 and self.prefixlen == 32) or (self.version == 6 and self.prefixlen == 128):
+            return {"kind": f"IPv{self.version}Address", "value": str(self.ip)}
+        elif self.prefixlen == 0:
+            return {"kind": "AnyIPAddress", "value": f"any{self.version}"}
+        else:
+            return {"kind": f"IPv{self.version}Network", "value": str(self.cidr)}

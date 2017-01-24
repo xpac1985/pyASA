@@ -29,14 +29,14 @@ class Test_Address(object):
             Address(None)
 
     def test_init_okay(self):
-        assert Address("4.3.2.1").to_dict() == {"kind": "IPv4Network", "value": "4.3.2.1/32"}
-        assert Address("4.1").to_dict() == {"kind": "IPv4Network", "value": "4.1.0.0/32"}
-        assert Address("::1/128").to_dict() == {"kind": "IPv6Network", "value": "::1/128"}
-        assert Address("2001:a::ffd").to_dict() == {"kind": "IPv6Network", "value": "2001:a::ffd/128"}
+        assert Address("4.3.2.1").to_dict() == {"kind": "IPv4Address", "value": "4.3.2.1"}
+        assert Address("4.1").to_dict() == {"kind": "IPv4Address", "value": "4.1.0.0"}
+        assert Address("::1/128").to_dict() == {"kind": "IPv6Address", "value": "::1"}
+        assert Address("2001:a::ffd").to_dict() == {"kind": "IPv6Address", "value": "2001:a::ffd"}
         assert Address("10.5.3.0/24").to_dict() == {"kind": "IPv4Network", "value": "10.5.3.0/24"}
         assert Address("200a:a7::/32").to_dict() == {"kind": "IPv6Network", "value": "200a:a7::/32"}
-        assert Address("2001:1234:0000:00:0000:0::7890").to_dict() == {"kind": "IPv6Network",
-                                                                       "value": "2001:1234::7890/128"}
+        assert Address("2001:1234:0000:00:0000:0::7890").to_dict() == {"kind": "IPv6Address",
+                                                                       "value": "2001:1234::7890"}
         assert Address("2001:adf:7::/16").to_dict() == {"kind": "IPv6Network", "value": "2001::/16"}
 
     def test_from_dict_any(self):

@@ -349,14 +349,14 @@ class Test_RuleTCPUDP(object):
             RuleTCPUDP._parse_port_json({"kind": "TcpUdpService", "value": "tcp/!=22"})
 
     def test_from_dict(self):
-        data = {"permit": True, "sourceAddress": {"kind": "IPv6Network", "value": "::1/128"},
+        data = {"permit": True, "sourceAddress": {"kind": "IPv6Address", "value": "::1"},
                 "destinationAddress": {"kind": "IPv6Network", "value": "::1/128"},
                 "sourceService": {"kind": "NetworkProtocol", "value": "tcp"},
                 "destinationService": {"kind": "TcpUdpService", "value": "!=tcp/sqlnet"}, "active": True, "remarks": []}
         assert isinstance(rule_from_dict(data), RuleTCPUDP)
 
     def test_to_dict(self, generic_rule):
-        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.31/32'},
+        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'tcp'},
                 'destinationService': {'kind': 'TcpUdpService', 'value': 'tcp/ssh'}, 'active': False,
@@ -365,7 +365,7 @@ class Test_RuleTCPUDP(object):
         assert generic_rule.to_dict() == data
         generic_rule.src_port = 22
         generic_rule.dst_port = "any"
-        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.31/32'},
+        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'TcpUdpService', 'value': 'tcp/ssh'},
                 'destinationService': {'kind': 'NetworkProtocol', 'value': 'tcp'}, 'active': False,
@@ -488,7 +488,7 @@ class Test_RuleICMP(object):
         assert isinstance(rule_from_dict(data), RuleICMP)
 
     def test_to_dict(self, generic_rule):
-        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.31/32'},
+        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'icmp'},
                 'destinationService': {'kind': 'ICMPService', 'value': 'icmp/echo/5'}, 'active': False,
@@ -498,7 +498,7 @@ class Test_RuleICMP(object):
         generic_rule.protocol = "icmp6"
         generic_rule.icmp_type = 129
         generic_rule.icmp_code = -1
-        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.31/32'},
+        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'icmp6'},
                 'destinationService': {'kind': 'ICMPService', 'value': 'icmp6/echo-reply'}, 'active': False,
@@ -506,7 +506,7 @@ class Test_RuleICMP(object):
                 'position': 17, 'isAccessRule': True, 'objectId': 1234567}
         assert generic_rule.to_dict() == data
         generic_rule.icmp_type = -1
-        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.31/32'},
+        data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'icmp6'},
                 'destinationService': {'kind': 'NetworkProtocol', 'value': 'icmp6'}, 'active': False,
