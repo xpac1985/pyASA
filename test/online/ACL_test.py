@@ -1,12 +1,11 @@
 from netaddr import IPAddress, IPNetwork
 from pyASA.address import Address
 from pyASA.rule import RuleTCPUDP, RuleICMP, ServiceComparator
-import os
 import pytest
 from random import randint, getrandbits, choice
 from test.online import settings
 
-@pytest.mark.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "Skipping this test on Travis CI")
+@pytest.mark.slow
 @pytest.mark.skipif(not settings.online, reason="ASA not available for online tests")
 class Test_ACL(object):
     @pytest.fixture(scope="class")
@@ -29,6 +28,7 @@ class Test_ACL(object):
         rule.dst_port = randint(1, 65535)
         asa.acl.append_rule(settings.test_acl, rule)
 
+    @pytest.mark.slow
     def test_append_rules(self, asa):
         rules = []
         for i in range(1, 351):
@@ -44,6 +44,7 @@ class Test_ACL(object):
             dst_port = randint(1, 65535)
             src_comp = choice([comp for comp in ServiceComparator])
             dst_comp = choice([comp for comp in ServiceComparator])
-            rule = RuleTCPUDP(protocol=protocol, src=src, dst=dst, src_port=i, dst_port=dst_port, src_comparator=src_comp, dst_comparator=dst_comp)
+            rule = RuleTCPUDP(protocol=protocol, src=src, dst=dst, src_port=i, dst_port=dst_port,
+                              src_comparator=src_comp, dst_comparator=dst_comp)
             rules.append(rule)
         asa.acl.append_rules(settings.test_acl, rules)
