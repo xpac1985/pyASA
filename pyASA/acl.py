@@ -94,8 +94,8 @@ class ACL(object):
         if response.status_code == requests.codes.created:
             if save_config:
                 self._caller.save_config()
-        elif response.status_code == requests.codes.bad_request and response.json()["messages"][
-            "code"] == "DUPLICATE":
+        elif response.status_code == requests.codes.bad_request and "messages" in response.json() and "code" in \
+                response.json()["messages"] and response.json()["messages"]["code"] == "DUPLICATE":
             raise ValueError(
                 f"Rule creation denied because rule is duplicate of rule object {response.json()['messages']['details']}")
         else:
