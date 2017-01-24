@@ -391,7 +391,7 @@ class RuleTCPUDP(RuleGeneric):
 
     @staticmethod
     def _parse_port_json(data: dict) -> tuple:
-        regex = re.compile(r"^(|(?:!=)?|<?|>?)(tcp|udp)/([a-z-]+|[0-9]+)$")
+        regex = re.compile(r"^(|(?:!=)?|<?|>?)(tcp|udp)/([a-z0-9-]+)$")
         if data["kind"] == "NetworkProtocol":
             protocol = data["value"]
             port = "any"
