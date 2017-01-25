@@ -22,7 +22,6 @@
   "radius": 1645,
   "radius-acct": 1646,
   "rip": 520,
-  "rtsp": 554,
   "secureid-udp": 5510,
   "sip": 5060,
   "snmp": 161,
@@ -33,6 +32,8 @@
   "talk": 517,
   "tftp": 69,
   "time": 37,
+  "vxlan": 4789,
   "who": 513,
+  "www": 80,
   "xdmcp": 177
 }

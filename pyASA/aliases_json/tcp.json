@@ -29,7 +29,7 @@
   "ldap": 389,
   "ldaps": 636,
   "login": 513,
-  "lotusnote": 1352,
+  "lotusnotes": 1352,
   "lpd": 515,
   "netbios-ssn": 139,
   "nfs": 2049,
