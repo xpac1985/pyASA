@@ -121,8 +121,8 @@ class RuleGeneric(BaseConfigObject):
     def dst(self, address: [str, IPAddress, IPNetwork, BaseAddress]):
         self._dst = RuleGeneric._parse_address(address)
 
-    @staticmethod
-    def _parse_address(address: [str, IPAddress, IPNetwork, BaseAddress]):
+    @classmethod
+    def _parse_address(cls, address: [str, IPAddress, IPNetwork, BaseAddress]):
         if isinstance(address, str):
             if address == "any":
                 return AnyAddress()
@@ -213,8 +213,8 @@ class RuleGeneric(BaseConfigObject):
         else:
             raise ValueError(f"{type(value)} is not a valid argument type")
 
-    @staticmethod
-    def _parse_protocol_json(data: dict) -> int:
+    @classmethod
+    def _parse_protocol_json(cls, data: dict) -> int:
         _protocol = data["value"]
         if _protocol.isdigit():
             return int(_protocol)
@@ -377,8 +377,8 @@ class RuleTCPUDP(RuleGeneric):
     def dst_comparator(self, value: ServiceComparator):
         self._dst_comparator = self._set_comparator(value)
 
-    @staticmethod
-    def _set_comparator(value: [ServiceComparator, str]) -> ServiceComparator:
+    @classmethod
+    def _set_comparator(cls, value: [ServiceComparator, str]) -> ServiceComparator:
         if isinstance(value, ServiceComparator):
             return value
         if isinstance(value, str):
@@ -389,8 +389,8 @@ class RuleTCPUDP(RuleGeneric):
         else:
             raise ValueError(f"{type(value)} is not a valid argument type")
 
-    @staticmethod
-    def _parse_port_json(data: dict) -> tuple:
+    @classmethod
+    def _parse_port_json(cls, data: dict) -> tuple:
         regex = re.compile(r"^(|(?:!=)?|<?|>?)(tcp|udp)/([a-z0-9-]+)$")
         if data["kind"] == "NetworkProtocol":
             protocol = data["value"]
@@ -539,8 +539,8 @@ class RuleICMP(RuleGeneric):
         else:
             raise ValueError(f"{type(icmp_code)} is not a valid argument type")
 
-    @staticmethod
-    def _parse_icmp_json(data: dict) -> tuple:
+    @classmethod
+    def _parse_icmp_json(cls, data: dict) -> tuple:
         regex = re.compile(r"^(icmp6?)/([a-z-]+|[0-9]+)/?(\d{0,3})$")
         if data["kind"] == "NetworkProtocol" and data["value"] in ["icmp", "icmp6"]:
             protocol = data["value"]

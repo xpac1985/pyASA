@@ -7,6 +7,7 @@ from netaddr import IPAddress
 
 from pyASA.acl import ACL
 from pyASA.caller import Caller
+from pyASA.logme import LogMe
 
 
 class ASA(object):
@@ -190,12 +191,18 @@ class ASA(object):
     def _http_auth(self) -> tuple:
         return self.user, self.password
 
-    ### Functions ###
+    ### Methods ###
 
+    @LogMe
+    def save_config(self):
+        self._caller.save_config()
+
+    @LogMe
     def get_management_access_info(self) -> dict:
         r = self._caller.get("mgmtaccess")
         return r.json()
 
+    @LogMe
     def test_connection(self) -> bool:
         if self.use_https and self.port == 80:
             self._logger.warning("You are using HTTPS with port 80. This is most likely not correct.")
@@ -203,15 +210,17 @@ class ASA(object):
             self._logger.warning("You are using HTTP with port 443. This is most likely not correct.")
         return self._caller.test_connection()
 
-    @staticmethod
-    def _validate_hostname(hostname: str) -> bool:
+    @classmethod
+    @LogMe
+    def _validate_hostname(cls, hostname: str) -> bool:
         hostname_regex = re.compile(
             r"(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?")
         return bool(hostname_regex.fullmatch(hostname))
 
     # noinspection PyBroadException
-    @staticmethod
-    def _validate_ip(ip: str) -> bool:
+    @classmethod
+    @LogMe
+    def _validate_ip(cls, ip: str) -> bool:
         try:
             IPAddress(ip)
             return True

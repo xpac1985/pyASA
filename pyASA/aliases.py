@@ -8,8 +8,8 @@ class Aliases(object):
     def __init__(self):
         Aliases.by_alias, Aliases.by_number = Aliases.load_aliases()
 
-    @staticmethod
-    def load_aliases_file(filename: str) -> dict:
+    @classmethod
+    def load_aliases_file(cls, filename: str) -> dict:
         """
         Returns dict of ip protocol/tcp+udp service/icmp+icmp6 message type aliases used on ASA
         Taken from https://www.cisco.com/c/en/us/td/docs/security/asa/asa96/configuration/general/asa-96-general-config/ref-ports.html#ID-2120-00000219
@@ -20,8 +20,8 @@ class Aliases(object):
             aliases = json.load(aliases_file)
         return aliases
 
-    @staticmethod
-    def load_aliases() -> (dict, dict):
+    @classmethod
+    def load_aliases(cls) -> (dict, dict):
         aliases = {}
         aliases["icmp"] = Aliases.load_aliases_file("icmp.json")
         aliases["icmp6"] = Aliases.load_aliases_file("icmp6.json")
