@@ -16,12 +16,10 @@ class ACL(object):
 
     @LogMe
     def exists(self, acl: str) -> bool:
-        # self._logger.debug(f"Starting ACL exists check for ACL {acl}")
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         response = self._caller.get(f"objects/extendedacls/{acl}")
         if response.status_code == requests.codes.ok:
-            # self._logger.debug(f"Finished ACL exists check for ACL {acl}")
             return True
         elif response.status_code == requests.codes.not_found:
             return False
@@ -31,13 +29,12 @@ class ACL(object):
 
     @LogMe
     def delete_rule(self, acl: str, objectid: int):
-        self._logger.debug(f"Starting ACL rule deletion for ACL {acl}, rule hash {hex(objectid)}")
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         if isinstance(objectid, int):
             response = self._caller.delete(f"objects/extendedacls/{acl}/aces/{objectid}")
             if response.status_code == requests.codes.no_content:
-                self._logger.debug(f"Finished ACL rule deletion for ACL {acl}, rule hash {hex(objectid)}")
+                pass
             else:
                 raise RuntimeError(
                     f"Deletion of ACL {acl} rule {objectid} failed with HTTP {response.status_code}: {response.json()}")
