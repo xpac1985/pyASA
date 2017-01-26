@@ -33,7 +33,8 @@ class RuleGeneric(BaseConfigObject):
                  src: [str, IPAddress, IPNetwork, BaseAddress] = "any",
                  dst: [str, IPAddress, IPNetwork, BaseAddress] = "any", remark: [None, str, list] = None,
                  active: bool = True,
-                 logging: [RuleLogging, None] = None, position: int = 0, is_access_rule: bool = False, objectid: int = 0):
+                 logging: [RuleLogging, None] = None, position: int = 0, is_access_rule: bool = False,
+                 objectid: int = 0):
 
         self._permit = False
         self._protocol = 0
@@ -254,11 +255,31 @@ class RuleGeneric(BaseConfigObject):
             result["objectId"] = self._objectid
         return result
 
-    def __eq__(self, other):
+    def copy(self):
+        rule = copy.deepcopy(self)
+        rule.objectid = 0
+        return rule
+
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, RuleGeneric):
             return self.to_dict() == other.to_dict()
         else:
             return False
+
+    def __contains__(self, item: object) -> bool:
+        if not isinstance(item, RuleGeneric):
+            return False
+        if item.permit != self.permit:
+            return False
+        if self.protocol > 0 and item.protocol != self.protocol:
+            return False
+        if not isinstance(self.src, AnyAddress) and item.src not in self.src:
+            return False
+        if not isinstance(self.dst, AnyAddress) and item.dst not in self.dst:
+            return False
+        if item.active != self.active:
+            return False
+        return True
 
 
 class RuleTCPUDP(RuleGeneric):
@@ -442,6 +463,65 @@ class RuleTCPUDP(RuleGeneric):
             }
         return result
 
+    def __contains__(self, item: object) -> bool:
+        if not isinstance(item, RuleTCPUDP):
+            return False
+        if not RuleGeneric.__contains__(self, item):
+            return False
+        if self.src_port != -1:
+            if item.src_port == -1:
+                return False
+            if self.src_comparator in [ServiceComparator.EQUAL, ServiceComparator.NOT_EQUAL]:
+                if item.src_comparator != self.src_comparator:
+                    return False
+                elif item.src_port != self.src_port:
+                    return False
+            elif self.src_comparator == ServiceComparator.GREATER:
+                if item.src_comparator in [ServiceComparator.LESSER, ServiceComparator.NOT_EQUAL]:
+                    return False
+                elif item.src_comparator == ServiceComparator.EQUAL:
+                    if item.src_port <= self.src_port:
+                        return False
+                elif item.src_comparator == ServiceComparator.GREATER:
+                    if item.src_port < self.src_port:
+                        return False
+            elif self.src_comparator == ServiceComparator.LESSER:
+                if item.src_comparator in [ServiceComparator.GREATER, ServiceComparator.NOT_EQUAL]:
+                    return False
+                elif item.src_comparator == ServiceComparator.EQUAL:
+                    if item.src_port >= self.src_port:
+                        return False
+                elif item.src_comparator == ServiceComparator.LESSER:
+                    if item.src_port > self.src_port:
+                        return False
+        if self.dst_port != -1:
+            if item.dst_port == -1:
+                return False
+            if self.dst_comparator in [ServiceComparator.EQUAL, ServiceComparator.NOT_EQUAL]:
+                if item.dst_comparator != self.dst_comparator:
+                    return False
+                elif item.dst_port != self.dst_port:
+                    return False
+            elif self.dst_comparator == ServiceComparator.GREATER:
+                if item.dst_comparator in [ServiceComparator.LESSER, ServiceComparator.NOT_EQUAL]:
+                    return False
+                elif item.dst_comparator == ServiceComparator.EQUAL:
+                    if item.dst_port <= self.dst_port:
+                        return False
+                elif item.dst_comparator == ServiceComparator.GREATER:
+                    if item.dst_port < self.dst_port:
+                        return False
+            elif self.dst_comparator == ServiceComparator.LESSER:
+                if item.dst_comparator in [ServiceComparator.GREATER, ServiceComparator.NOT_EQUAL]:
+                    return False
+                elif item.dst_comparator == ServiceComparator.EQUAL:
+                    if item.dst_port >= self.dst_port:
+                        return False
+                elif item.dst_comparator == ServiceComparator.LESSER:
+                    if item.dst_port > self.dst_port:
+                        return False
+        return True
+
 
 class RuleICMP(RuleGeneric):
     def __init__(self, permit: bool = False, protocol: [int, str] = "icmp",
@@ -594,3 +674,16 @@ class RuleICMP(RuleGeneric):
                     "value": f"{self.protocol_alias}/{self.icmp_type_alias}/{self.icmp_code}"
                 }
         return result
+
+    def __contains__(self, item: object) -> bool:
+        if not isinstance(item, RuleICMP):
+            return False
+        if not RuleGeneric.__contains__(self, item):
+            return False
+        if self.icmp_type != -1:
+            if item.icmp_type != self.icmp_type:
+                return False
+            if self.icmp_code != -1:
+                if item.icmp_code != self.icmp_code:
+                    return False
+        return True

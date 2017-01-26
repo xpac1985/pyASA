@@ -217,7 +217,6 @@ class ASA(object):
             r"(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?")
         return bool(hostname_regex.fullmatch(hostname))
 
-    # noinspection PyBroadException
     @classmethod
     @LogMe
     def _validate_ip(cls, ip: str) -> bool:

@@ -1,9 +1,11 @@
-from netaddr import IPAddress, IPNetwork
-from pyASA.address import Address
-from pyASA.rule import RuleTCPUDP, RuleICMP, ServiceComparator
-import pytest
 from random import randint, getrandbits, choice
+
+import pytest
+from netaddr import IPAddress, IPNetwork
+
+from pyASA.rule import RuleTCPUDP, ServiceComparator
 from test.online import settings
+
 
 @pytest.mark.skipif(not settings.online, reason="ASA not available for online tests")
 class Test_ACL(object):

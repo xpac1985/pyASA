@@ -23,10 +23,10 @@ class Test_RuleGeneric(object):
         rule.position = 17
         return rule
 
-    def test_get_src(self, generic_rule):
+    def test_get_src(self, generic_rule: RuleGeneric):
         assert generic_rule.src == Address("192.168.23.0/24")
 
-    def test_set_src(self, generic_rule):
+    def test_set_src(self, generic_rule: RuleGeneric):
         generic_rule.src = Address("10.4.5.6")
         assert generic_rule.src == Address("10.4.5.6")
         generic_rule.src = IPNetwork("10.1.2.0/24")
@@ -36,10 +36,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.src = None
 
-    def test_get_dst(self, generic_rule):
+    def test_get_dst(self, generic_rule: RuleGeneric):
         assert generic_rule.dst == Address("192.168.24.0/24")
 
-    def test_set_dst(self, generic_rule):
+    def test_set_dst(self, generic_rule: RuleGeneric):
         generic_rule.dst = Address("10.4.5.6")
         assert generic_rule.dst == Address("10.4.5.6")
         generic_rule.dst = IPNetwork("10.1.2.0/24")
@@ -49,10 +49,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.dst = None
 
-    def test_get_permit(self, generic_rule):
+    def test_get_permit(self, generic_rule: RuleGeneric):
         assert generic_rule.permit is True
 
-    def test_set_permit(self, generic_rule):
+    def test_set_permit(self, generic_rule: RuleGeneric):
         generic_rule.permit = False
         assert generic_rule.permit is False
         with pytest.raises(ValueError):
@@ -60,10 +60,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.permit = None
 
-    def test_get_active(self, generic_rule):
+    def test_get_active(self, generic_rule: RuleGeneric):
         assert generic_rule.active is False
 
-    def test_set_active(self, generic_rule):
+    def test_set_active(self, generic_rule: RuleGeneric):
         generic_rule.active = False
         assert generic_rule.active is False
         with pytest.raises(ValueError):
@@ -71,10 +71,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.active = None
 
-    def test_get_objectid(self, generic_rule):
+    def test_get_objectid(self, generic_rule: RuleGeneric):
         assert generic_rule.objectid == 1234567
 
-    def test_set_objectid(self, generic_rule):
+    def test_set_objectid(self, generic_rule: RuleGeneric):
         generic_rule.objectid = 55
         assert generic_rule.objectid == 55
         with pytest.raises(ValueError):
@@ -84,10 +84,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.objectid = "test"
 
-    def test_get_is_access_rule(self, generic_rule):
+    def test_get_is_access_rule(self, generic_rule: RuleGeneric):
         assert generic_rule.is_access_rule is True
 
-    def test_set_is_access_rule(self, generic_rule):
+    def test_set_is_access_rule(self, generic_rule: RuleGeneric):
         generic_rule.is_access_rule = False
         assert generic_rule.is_access_rule is False
         with pytest.raises(ValueError):
@@ -97,10 +97,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.is_access_rule = "testing"
 
-    def test_get_logging(self, generic_rule):
+    def test_get_logging(self, generic_rule: RuleGeneric):
         assert generic_rule.logging == RuleLogging(60, LogLevel.DEBUGGING)
 
-    def test_set_logging(self, generic_rule):
+    def test_set_logging(self, generic_rule: RuleGeneric):
         generic_rule.logging = RuleLogging()
         assert generic_rule.logging.interval == 300
         assert generic_rule.logging.level == LogLevel.DEFAULT
@@ -110,10 +110,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.logging = 6
 
-    def test_get_protocol(self, generic_rule):
+    def test_get_protocol(self, generic_rule: RuleGeneric):
         assert generic_rule.protocol == 88
 
-    def test_set_protocol(self, generic_rule):
+    def test_set_protocol(self, generic_rule: RuleGeneric):
         generic_rule.protocol = "5"
         assert generic_rule.protocol == 5
         with pytest.raises(ValueError):
@@ -139,15 +139,15 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.protocol = None
 
-    def test_get_protocol_alias(self, generic_rule):
+    def test_get_protocol_alias(self, generic_rule: RuleGeneric):
         assert generic_rule.protocol_alias == "eigrp"
         generic_rule.protocol = 237
         assert generic_rule.protocol_alias == "237"
 
-    def test_get_remark(self, generic_rule):
+    def test_get_remark(self, generic_rule: RuleGeneric):
         assert generic_rule.remark == ["EIGRP Test Rule"]
 
-    def test_set_remark(self, generic_rule):
+    def test_set_remark(self, generic_rule: RuleGeneric):
         generic_rule.remark = "Test"
         assert generic_rule.remark == ["Test"]
         generic_rule.remark = ["Line 1", "Line 2"]
@@ -159,10 +159,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             generic_rule.remark = {1: "Line", 2: "Line"}
 
-    def test_get_position(self, generic_rule):
+    def test_get_position(self, generic_rule: RuleGeneric):
         assert generic_rule.position == 17
 
-    def test_set_position(self, generic_rule):
+    def test_set_position(self, generic_rule: RuleGeneric):
         generic_rule.position = 53
         assert generic_rule.position == 53
         with pytest.raises(ValueError):
@@ -181,7 +181,7 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             RuleGeneric._parse_protocol_json(data)
 
-    def test_from_dict(self, generic_rule):
+    def test_from_dict(self, generic_rule: RuleGeneric):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.0/24'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'eigrp'},
@@ -190,7 +190,7 @@ class Test_RuleGeneric(object):
                 'position': 17, 'isAccessRule': True, 'objectId': 1234567}
         assert generic_rule == rule_from_dict(data)
 
-    def test_to_dict(self, generic_rule):
+    def test_to_dict(self, generic_rule: RuleGeneric):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.0/24'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'eigrp'},
@@ -199,11 +199,50 @@ class Test_RuleGeneric(object):
                 'position': 17, 'isAccessRule': True, 'objectId': 1234567}
         assert generic_rule.to_dict() == data
 
-    def test_equals(self, generic_rule):
+    def test_equals(self, generic_rule: RuleGeneric):
         assert generic_rule is not None
         assert not generic_rule == "Bla"
         assert not generic_rule == 6
         assert not generic_rule == RuleGeneric()
+
+    def test_contains(self, generic_rule: RuleGeneric):
+        rule = generic_rule.copy()
+        assert rule in generic_rule
+        generic_rule.protocol = 0
+        assert rule in generic_rule
+        rule.is_access_rule = False
+        assert rule in generic_rule
+        rule.remark = None
+        assert rule in generic_rule
+        rule.position = 0
+        assert rule in generic_rule
+        generic_rule.src = "192.168.22.0/23"
+        assert rule in generic_rule
+        generic_rule.src = "192.168.22.0/24"
+        assert rule not in generic_rule
+        rule.src = "192.168.22.17"
+        assert rule in generic_rule
+        rule.permit = False
+        assert rule not in generic_rule
+        rule.permit = True
+        rule.active = True
+        assert rule not in generic_rule
+
+    def test_contains_tcpudp(self, generic_rule: RuleGeneric):
+        ruletcpudp = RuleTCPUDP()
+        ruletcpudp.src = "192.168.23.1"
+        ruletcpudp.dst = "192.168.24.1"
+        ruletcpudp.permit = True
+        ruletcpudp.active = False
+        ruletcpudp.objectid = 1234567
+        ruletcpudp.is_access_rule = True
+        ruletcpudp.logging.interval = 60
+        ruletcpudp.logging.level = "Debugging"
+        ruletcpudp.remark = "EIGRP Test Rule"
+        ruletcpudp.position = 17
+        assert ruletcpudp not in generic_rule
+        generic_rule.protocol = 0
+        assert ruletcpudp in generic_rule
 
 
 class Test_RuleTCPUDP(object):
@@ -225,10 +264,10 @@ class Test_RuleTCPUDP(object):
         rule.position = 17
         return rule
 
-    def test_get_src_port(self, generic_rule):
+    def test_get_src_port(self, generic_rule: RuleTCPUDP):
         assert generic_rule.src_port == -1
 
-    def test_set_src_port(self, generic_rule):
+    def test_set_src_port(self, generic_rule: RuleTCPUDP):
         generic_rule.src_port = 53
         assert generic_rule.src_port == 53
         generic_rule.src_port = "any"
@@ -246,10 +285,10 @@ class Test_RuleTCPUDP(object):
         with pytest.raises(ValueError):
             generic_rule.src_port = None
 
-    def test_get_dst_port(self, generic_rule):
+    def test_get_dst_port(self, generic_rule: RuleTCPUDP):
         assert generic_rule.dst_port == 22
 
-    def test_set_dst_port(self, generic_rule):
+    def test_set_dst_port(self, generic_rule: RuleTCPUDP):
         generic_rule.dst_port = "any"
         assert generic_rule.dst_port == -1
         generic_rule.dst_port = 53
@@ -269,10 +308,10 @@ class Test_RuleTCPUDP(object):
         with pytest.raises(ValueError):
             generic_rule.dst_port = None
 
-    def test_get_protocol(self, generic_rule):
+    def test_get_protocol(self, generic_rule: RuleTCPUDP):
         assert generic_rule.protocol == 6
 
-    def test_set_protocol(self, generic_rule):
+    def test_set_protocol(self, generic_rule: RuleTCPUDP):
         generic_rule.protocol = "17"
         assert generic_rule.protocol == 17
         with pytest.raises(ValueError):
@@ -298,7 +337,7 @@ class Test_RuleTCPUDP(object):
         with pytest.raises(ValueError):
             generic_rule.protocol = None
 
-    def test_get_src_port_alias(self, generic_rule):
+    def test_get_src_port_alias(self, generic_rule: RuleTCPUDP):
         generic_rule.src_port = -1
         assert generic_rule.src_port_alias == "any"
         generic_rule.src_port = 22
@@ -306,7 +345,7 @@ class Test_RuleTCPUDP(object):
         generic_rule.src_port = 3859
         assert generic_rule.src_port_alias == "3859"
 
-    def test_get_dst_port_alias(self, generic_rule):
+    def test_get_dst_port_alias(self, generic_rule: RuleTCPUDP):
         generic_rule.dst_port = -1
         assert generic_rule.dst_port_alias == "any"
         generic_rule.dst_port = 22
@@ -314,7 +353,7 @@ class Test_RuleTCPUDP(object):
         generic_rule.dst_port = 3859
         assert generic_rule.dst_port_alias == "3859"
 
-    def test_src_comparator(self, generic_rule):
+    def test_src_comparator(self, generic_rule: RuleTCPUDP):
         assert generic_rule.src_comparator == ServiceComparator.EQUAL
         generic_rule.src_comparator = ServiceComparator.LESSER
         assert generic_rule.src_comparator == ServiceComparator.LESSER
@@ -325,7 +364,7 @@ class Test_RuleTCPUDP(object):
         with pytest.raises(ValueError):
             generic_rule.src_comparator = "<<"
 
-    def test_dst_comparator(self, generic_rule):
+    def test_dst_comparator(self, generic_rule: RuleTCPUDP):
         assert generic_rule.dst_comparator == ServiceComparator.EQUAL
         generic_rule.dst_comparator = ServiceComparator.LESSER
         assert generic_rule.dst_comparator == ServiceComparator.LESSER
@@ -355,7 +394,7 @@ class Test_RuleTCPUDP(object):
                 "destinationService": {"kind": "TcpUdpService", "value": "!=tcp/sqlnet"}, "active": True, "remarks": []}
         assert isinstance(rule_from_dict(data), RuleTCPUDP)
 
-    def test_to_dict(self, generic_rule):
+    def test_to_dict(self, generic_rule: RuleTCPUDP):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'tcp'},
@@ -372,6 +411,63 @@ class Test_RuleTCPUDP(object):
                 'remarks': ['SSH Test Rule'], 'ruleLogging': {'logStatus': 'Debugging', 'logInterval': 60},
                 'position': 17, 'isAccessRule': True, 'objectId': 1234567}
         assert generic_rule.to_dict() == data
+
+    def test_contains(self, generic_rule: RuleTCPUDP):
+        rule = generic_rule.copy()
+        assert rule in generic_rule
+        generic_rule.src = "any"
+        assert rule in generic_rule
+        rule.dst = "192.168.24.255"
+        assert rule in generic_rule
+        generic_rule.dst = "any4"
+        assert rule in generic_rule
+        rule.src_port = "80"
+        assert rule in generic_rule
+        rule.src_comparator = ServiceComparator.NOT_EQUAL
+        assert rule in generic_rule
+        generic_rule.dst_port = 21
+        assert rule not in generic_rule
+        generic_rule.dst_comparator = ServiceComparator.GREATER
+        assert rule in generic_rule
+        rule.dst_comparator = ServiceComparator.LESSER
+        assert rule not in generic_rule
+        rule.dst_port = -1
+        assert rule not in generic_rule
+        rule.dst_port = 80
+        assert rule not in generic_rule
+        generic_rule.dst_port = "any"
+        assert rule in generic_rule
+        rule.dst_comparator = ServiceComparator.NOT_EQUAL
+        rule.dst_port = 17
+        assert rule in generic_rule
+        generic_rule.dst_comparator = ServiceComparator.LESSER
+        generic_rule.dst_port = 36
+        assert rule not in generic_rule
+        rule.dst_comparator = ServiceComparator.EQUAL
+        assert rule in generic_rule
+        rule.objectid = 7654321
+        rule.is_access_rule = False
+        rule.logging.interval = 120
+        rule.logging.level = LogLevel.ALERTS
+        rule.remark = "other Test Rule"
+        rule.position = 99
+        assert rule in generic_rule
+        rule.protocol = "udp"
+        assert rule not in generic_rule
+
+    def test_contains_other(self, generic_rule: RuleTCPUDP):
+        rule = RuleGeneric()
+        rule.src = "192.168.23.31"
+        rule.dst = "192.168.24.1"
+        rule.permit = True
+        rule.active = False
+        assert rule not in generic_rule
+        rule = RuleICMP()
+        rule.src = "192.168.23.31"
+        rule.dst = "192.168.24.1"
+        rule.permit = True
+        rule.active = False
+        assert rule not in generic_rule
 
 
 class Test_RuleICMP(object):
@@ -393,7 +489,7 @@ class Test_RuleICMP(object):
         rule.position = 17
         return rule
 
-    def test_protocol(self, generic_rule):
+    def test_protocol(self, generic_rule: RuleICMP):
         assert generic_rule.protocol == 1
         generic_rule.protocol = "58"
         assert generic_rule.protocol == 58
@@ -414,12 +510,12 @@ class Test_RuleICMP(object):
         with pytest.raises(ValueError):
             generic_rule.protocol = dict()
 
-    def test_protocol_alias(self, generic_rule):
+    def test_protocol_alias(self, generic_rule: RuleICMP):
         assert generic_rule.protocol_alias == "icmp"
         generic_rule.protocol = 58
         assert generic_rule.protocol_alias == "icmp6"
 
-    def test_icmp_type(self, generic_rule):
+    def test_icmp_type(self, generic_rule: RuleICMP):
         assert generic_rule.icmp_type == 8
         generic_rule.icmp_type = "echo-reply"
         assert generic_rule.icmp_type == 0
@@ -442,12 +538,12 @@ class Test_RuleICMP(object):
         with pytest.raises(ValueError):
             generic_rule.icmp_type = dict()
 
-    def test_icmp_type_alias(self, generic_rule):
+    def test_icmp_type_alias(self, generic_rule: RuleICMP):
         assert generic_rule.icmp_type_alias == "echo"
         generic_rule.icmp_type = 253
         assert generic_rule.icmp_type_alias == "253"
 
-    def test_icmp_code(self, generic_rule):
+    def test_icmp_code(self, generic_rule: RuleICMP):
         assert generic_rule.icmp_code == 5
         generic_rule.icmp_code = 0
         assert generic_rule.icmp_code == 0
@@ -487,7 +583,7 @@ class Test_RuleICMP(object):
                 "remarks": []}
         assert isinstance(rule_from_dict(data), RuleICMP)
 
-    def test_to_dict(self, generic_rule):
+    def test_to_dict(self, generic_rule: RuleICMP):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'icmp'},
@@ -513,3 +609,34 @@ class Test_RuleICMP(object):
                 'remarks': ['ICMP Test Rule'], 'ruleLogging': {'logStatus': 'Debugging', 'logInterval': 60},
                 'position': 17, 'isAccessRule': True, 'objectId': 1234567}
         assert generic_rule.to_dict() == data
+
+    def test_contains(self, generic_rule: RuleICMP):
+        rule = generic_rule.copy()
+        assert rule in generic_rule
+        rule.icmp_code = -1
+        assert rule not in generic_rule
+        rule.icmp_type = -1
+        assert rule not in generic_rule
+        rule.icmp_code = 5
+        assert rule not in generic_rule
+        generic_rule.icmp_code = -1
+        assert rule not in generic_rule
+        generic_rule.icmp_type = "any"
+        assert rule in generic_rule
+
+    def test_contains_other(self, generic_rule: RuleICMP):
+        rule = RuleGeneric()
+        rule.src = "192.168.23.31"
+        rule.dst = "192.168.24.1"
+        rule.permit = True
+        rule.active = False
+        assert rule not in generic_rule
+        rule = RuleTCPUDP()
+        rule.src = "192.168.23.31"
+        rule.dst = "192.168.24.1"
+        rule.permit = True
+        rule.active = False
+        assert rule not in generic_rule
+        rule.icmp_type = "echo"
+        rule.icmp_code = 5
+        assert rule not in generic_rule

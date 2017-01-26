@@ -43,7 +43,6 @@ class ACL(object):
 
     @LogMe
     def delete_rules(self, acl: str, objectids: [None, list] = None):
-        data = []
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         if not isinstance(objectids, (type(None), list)):
@@ -51,7 +50,6 @@ class ACL(object):
         if objectids is None:
             rules = self.get_rules(acl)
             objectids = [rule.objectid for rule in rules]
-
         count = 0
         total = len(objectids)
         while count < total:
@@ -152,5 +150,5 @@ class ACL(object):
                 raise RuntimeError(
                     f"Bulk rule creation of {len(rules)} rules failed after 3 tries in step {count}-{total if total < count+100 else count+100} with HTTP {response.status_code}: {response.json()}")
             else:
-                sleep(5)
+                sleep(3)
             count += 100
