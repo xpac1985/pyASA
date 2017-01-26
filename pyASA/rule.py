@@ -271,7 +271,7 @@ class RuleGeneric(BaseConfigObject):
             return False
         if item.permit != self.permit:
             return False
-        if self.protocol > 0 and item.protocol != self.protocol:
+        if 0 < self.protocol != item.protocol:
             return False
         if not isinstance(self.src, AnyAddress) and item.src not in self.src:
             return False
