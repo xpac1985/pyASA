@@ -1,5 +1,7 @@
 import logging
 import re
+from requests.packages import urllib3
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from netaddr import IPAddress
 
@@ -9,7 +11,8 @@ from pyASA.caller import Caller
 
 class ASA(object):
     def __init__(self, host: str, user: str, password: str, port: int = 443, use_https: bool = True,
-                 url_prefix: str = "/", validate_cert: bool = True, debug: bool = False, timeout: int = 10):
+                 url_prefix: str = "/", validate_cert: bool = True, debug: bool = False, timeout: int = 10,
+                 retries: int = 2):
 
         self._logger = logging.getLogger("pyASA")
         if debug:
@@ -24,6 +27,7 @@ class ASA(object):
         self._validate_cert = True
         self._debug = False
         self._timeout = 10
+        self._retries = 2
 
         self._caller = None
         self.host = host
@@ -35,7 +39,8 @@ class ASA(object):
         self.validate_cert = validate_cert
         self.debug = debug
         self.timeout = timeout
-        self._caller = Caller(self.baseurl, self._http_auth, self.validate_cert, self.debug, self.timeout)
+        self.retries = retries
+        self._caller = Caller(self.baseurl, self._http_auth, self.validate_cert, self.debug, self.timeout, self.retries)
         self.acl = ACL(self._caller)
 
     ### Property getter and setter ###
@@ -128,8 +133,10 @@ class ASA(object):
     @validate_cert.setter
     def validate_cert(self, validate_cert: bool):
         self._validate_cert = bool(validate_cert)
+        if not validate_cert:
+            urllib3.disable_warnings(InsecureRequestWarning)
         if self._caller:
-            self._caller.update(validate_cert=self.validate_cert)
+            self._caller.update(validate_cert=self._validate_cert)
 
     @property
     def debug(self) -> bool:
@@ -139,7 +146,7 @@ class ASA(object):
     def debug(self, debug: bool):
         self._debug = bool(debug)
         if self._caller:
-            self._caller.update(debug=self.debug)
+            self._caller.update(debug=self._debug)
 
     @property
     def timeout(self) -> int:
@@ -153,6 +160,20 @@ class ASA(object):
                 self._caller.update(timeout=self.timeout)
         else:
             raise ValueError(f"{timeout} is outside of valid timeout range 0.001 - 300 seconds")
+
+    @property
+    def retries(self):
+        return self._retries
+
+    @retries.setter
+    def retries(self, retries: int):
+        if not isinstance(retries, int):
+            raise ValueError(f"{retries} is outside of valid timeout range 0.001 - 300 seconds")
+        if not (0 <= retries <= 8):
+            raise ValueError(f"retries must be in range 0..8")
+        self._retries = int(retries)
+        if self._caller:
+            self._caller.update(retries=self._retries)
 
     @property
     def baseurl(self) -> str:
@@ -170,7 +191,7 @@ class ASA(object):
         return self.user, self.password
 
     ### Functions ###
-    
+
     def get_management_access_info(self) -> dict:
         r = self._caller.get("mgmtaccess")
         return r.json()
