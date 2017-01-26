@@ -56,7 +56,6 @@ class Caller(object):
                 sleep(tries)
         return response
 
-
     def get(self, url: str, parameters: [dict, None] = None) -> requests.Response:
         if parameters is None:
             parameters = {}
@@ -68,7 +67,8 @@ class Caller(object):
         code = 500
         while code == 500 and tries <= self.retries:
             self.logger.debug(f"GET REQ {self.baseurl}/{url} --- parameters: {parameters}")
-            response = requests.get(f"{self.baseurl}/{url}", params=parameters, auth=self.http_auth, headers=self.headers,
+            response = requests.get(f"{self.baseurl}/{url}", params=parameters, auth=self.http_auth,
+                                    headers=self.headers,
                                     verify=self.validate_cert)
             self.logger.debug(
                 f"GET RSP HTTP code {response.status_code}, history {response.history}, header {response.headers}")
@@ -78,7 +78,6 @@ class Caller(object):
             if code == 500:
                 sleep(tries)
         return response
-
 
     def post(self, url: str, data: [dict, None] = None) -> requests.Response:
         if data is not None:
@@ -98,7 +97,6 @@ class Caller(object):
                 sleep(tries)
         return response
 
-
     def test_connection(self) -> bool:
         try:
             r = self.get("mgmtaccess")
@@ -107,7 +105,8 @@ class Caller(object):
             self.logger.warning(f"ASA connection test failed: {e}")
             return False
 
-
-    def save_config(self) -> bool:
-        r = self.post("commands/writemem")
-        return r.status_code == requests.codes.ok
+    def save_config(self):
+        response = self.post("commands/writemem")
+        if response.status_code != requests.codes.ok:
+            raise RuntimeError(
+                f"Config save failed with HTTP {response.status_code}: {response.json()}")
