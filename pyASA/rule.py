@@ -336,7 +336,7 @@ class RuleTCPUDP(RuleGeneric):
             if port in Aliases.by_alias[self.protocol_alias]:
                 return Aliases.by_alias[self.protocol_alias][port]
             else:
-                raise ValueError(f"{type} is not a valid {self.protocol_alias} service alias")
+                raise ValueError(f"{port} is not a valid {self.protocol_alias} service alias")
         elif isinstance(port, int):
             if 1 <= port <= 65535 or port == -1:
                 return int(port)
