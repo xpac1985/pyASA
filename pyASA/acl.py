@@ -1,20 +1,27 @@
+import logging
+from pyASA.logme import LogMe
 from pyASA.caller import Caller
 from pyASA.rule import RuleGeneric, rule_from_dict
 import requests.status_codes
+from time import sleep
 
 
 class ACL(object):
     def __init__(self, caller: Caller):
+        self._logger = logging.getLogger("pyASA")
         if isinstance(caller, Caller):
             self._caller = caller
         else:
             ValueError(f"{type(caller)} is not a valid caller argument type")
 
+    @LogMe
     def exists(self, acl: str) -> bool:
+        # self._logger.debug(f"Starting ACL exists check for ACL {acl}")
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         response = self._caller.get(f"objects/extendedacls/{acl}")
         if response.status_code == requests.codes.ok:
+            # self._logger.debug(f"Finished ACL exists check for ACL {acl}")
             return True
         elif response.status_code == requests.codes.not_found:
             return False
@@ -22,21 +29,23 @@ class ACL(object):
             raise RuntimeError(
                 f"ACL exists check for acl {acl} failed with HTTP {response.status_code}: {response.json()}")
 
-    def delete_rule(self, acl: str, objectid: int, save_config: bool = False):
+    @LogMe
+    def delete_rule(self, acl: str, objectid: int):
+        self._logger.debug(f"Starting ACL rule deletion for ACL {acl}, rule hash {hex(objectid)}")
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         if isinstance(objectid, int):
             response = self._caller.delete(f"objects/extendedacls/{acl}/aces/{objectid}")
             if response.status_code == requests.codes.no_content:
-                if save_config:
-                    self._caller.save_config()
+                self._logger.debug(f"Finished ACL rule deletion for ACL {acl}, rule hash {hex(objectid)}")
             else:
                 raise RuntimeError(
                     f"Deletion of ACL {acl} rule {objectid} failed with HTTP {response.status_code}: {response.json()}")
         else:
             raise ValueError(f"{type(objectid)} is not a valid rule argument type")
 
-    def delete_rules(self, acl: str, objectids: [None, list] = None, save_config: bool = False):
+    @LogMe
+    def delete_rules(self, acl: str, objectids: [None, list] = None):
         data = []
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
@@ -45,19 +54,38 @@ class ACL(object):
         if objectids is None:
             rules = self.get_rules(acl)
             objectids = [rule.objectid for rule in rules]
-        for objectid in objectids:
-            if isinstance(objectid, int):
-                data.append({"resourceUri": f"/api/objects/extendedacls/{acl}/aces/{objectid}", "method": "Delete"})
-            else:
-                raise ValueError(f"{type(objectid)} is not a valid objectid argument type")
-        response = self._caller.post("", data)
-        if response.status_code == requests.codes.ok:
-            if save_config:
-                self._caller.save_config()
-        else:
-            raise RuntimeError(
-                f"Bulk rule deletion of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()}")
 
+        count = 0
+        total = len(objectids)
+        while count < total:
+            data = []
+            _objectids = objectids[count:count + 500]
+            for objectid in _objectids:
+                data.append(
+                    {"resourceUri": f"/api/objects/extendedacls/{acl}/aces/{objectid}", "method": "Delete"})
+            response = self._caller.post("", data)
+            if response.status_code == requests.codes.server_error:
+                raise RuntimeError(
+                    f"Bulk rule deletion of {len(rules)} rules failed with HTTP {response.status_code}")
+            elif response.status_code != requests.codes.ok:
+                raise RuntimeError(
+                    f"Bulk rule deletion of {len(rules)} rules failed with HTTP {response.status_code}: {response.json()}")
+            else:
+                sleep(0.5)
+            count += 500
+
+    @LogMe
+    def get_rule_count(self, acl: str) -> int:
+        if not isinstance(acl, str):
+            raise ValueError(f"{type(acl)} is not a valid acl argument type")
+        response = self._caller.get(f"objects/extendedacls/{acl}/aces", {"offset": 0, "limit": 0})
+        if response.status_code != requests.codes.ok:
+            raise RuntimeError(
+                f"Getting rule count for ACL {acl} failed with HTTP {response.status_code}")
+        return response.json()["rangeInfo"]["total"]
+
+
+    @LogMe
     def get_rules(self, acl: str) -> list:
         total = 1
         count = 0
@@ -76,33 +104,36 @@ class ACL(object):
                     f"Requesting ACL {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
         return rules
 
+    @LogMe
     def get_acls(self) -> list:
         response = self._caller.get("objects/extendedacls")
         if response.status_code == requests.codes.ok:
             names = [entry["name"] for entry in response.json()["items"]]
             return names
+        elif response.status_code == requests.codes.server_error:
+            raise RuntimeError(
+                f"Requesting ACL names failed with HTTP {response.status_code}")
         else:
             raise RuntimeError(
-                f"Requesting ACL names failedfailed with HTTP {response.status_code}: {response.json()}")
+                f"Requesting ACL names failed with HTTP {response.status_code}: {response.json()}")
 
-    def append_rule(self, acl: str, rule: RuleGeneric, save_config: bool = False):
+    @LogMe
+    def append_rule(self, acl: str, rule: RuleGeneric):
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         if not isinstance(rule, RuleGeneric):
             raise ValueError(f"{type(rule)} is not a valid rule argument type")
         response = self._caller.post(f"objects/extendedacls/{acl}/aces", rule.to_dict())
-        if response.status_code == requests.codes.created:
-            if save_config:
-                self._caller.save_config()
-        elif response.status_code == requests.codes.bad_request and "messages" in response.json() and "code" in \
+        if response.status_code == requests.codes.bad_request and "messages" in response.json() and "code" in \
                 response.json()["messages"] and response.json()["messages"]["code"] == "DUPLICATE":
             raise ValueError(
                 f"Rule creation denied because rule is duplicate of rule object {response.json()['messages']['details']}")
-        else:
+        elif response.status_code != requests.codes.created:
             raise RuntimeError(
                 f"Appending rule to ACL {acl} failed with HTTP {response.status_code}: {response.json()}")
 
-    def append_rules(self, acl: str, rules: [RuleGeneric], save_config: bool = False):
+    @LogMe
+    def append_rules(self, acl: str, rules: [RuleGeneric]):
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
         if not isinstance(rules, list):
@@ -120,10 +151,10 @@ class ACL(object):
             response = self._caller.post("", data)
             if response.status_code == requests.codes.server_error:
                 raise RuntimeError(
-                    f"Bulk rule creation of {len(rules)} rules failed in step {count}-{total if total < count+100 else count+100} with HTTP {response.status_code}")
+                    f"Bulk rule creation of {len(rules)} rules failed after 3 tries in step {count}-{total if total < count+100 else count+100} with HTTP {response.status_code}")
             elif response.status_code != requests.codes.ok:
                 raise RuntimeError(
-                    f"Bulk rule creation of {len(rules)} rules failed in step {count}-{total if total < count+100 else count+100} with HTTP {response.status_code}: {response.json()}")
+                    f"Bulk rule creation of {len(rules)} rules failed after 3 tries in step {count}-{total if total < count+100 else count+100} with HTTP {response.status_code}: {response.json()}")
+            else:
+                sleep(5)
             count += 100
-        if save_config:
-            self._caller.save_config()
