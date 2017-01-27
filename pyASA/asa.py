@@ -211,14 +211,12 @@ class ASA(object):
         return self._caller.test_connection()
 
     @classmethod
-    @LogMe
     def _validate_hostname(cls, hostname: str) -> bool:
         hostname_regex = re.compile(
             r"(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?")
         return bool(hostname_regex.fullmatch(hostname))
 
     @classmethod
-    @LogMe
     def _validate_ip(cls, ip: str) -> bool:
         try:
             IPAddress(ip)

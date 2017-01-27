@@ -15,5 +15,5 @@ class BaseConfigObject(ABC):
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), indent=2)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.to_json()

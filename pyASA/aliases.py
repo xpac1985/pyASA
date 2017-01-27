@@ -1,5 +1,6 @@
 import json
 import os
+from pyASA.logme import LogMe
 
 
 class Aliases(object):
@@ -9,6 +10,7 @@ class Aliases(object):
         Aliases.by_alias, Aliases.by_number = Aliases.load_aliases()
 
     @classmethod
+    @LogMe
     def load_aliases_file(cls, filename: str) -> dict:
         """
         Returns dict of ip protocol/tcp+udp service/icmp+icmp6 message type aliases used on ASA
@@ -21,6 +23,7 @@ class Aliases(object):
         return aliases
 
     @classmethod
+    @LogMe
     def load_aliases(cls) -> (dict, dict):
         aliases = {}
         aliases["icmp"] = Aliases.load_aliases_file("icmp.json")

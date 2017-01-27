@@ -2,6 +2,7 @@ import json
 import logging
 import requests
 from time import sleep
+from pyASA.logme import LogMe
 
 
 class Caller(object):
@@ -34,6 +35,7 @@ class Caller(object):
         if retries:
             self.retries = retries
 
+    @LogMe
     def delete(self, url: str, parameters: [dict, None] = None) -> requests.Response:
         if parameters is None:
             parameters = {}
@@ -56,6 +58,7 @@ class Caller(object):
                 sleep(tries)
         return response
 
+    @LogMe
     def get(self, url: str, parameters: [dict, None] = None) -> requests.Response:
         if parameters is None:
             parameters = {}
@@ -79,6 +82,7 @@ class Caller(object):
                 sleep(tries)
         return response
 
+    @LogMe
     def post(self, url: str, data: [dict, None] = None) -> requests.Response:
         if data is not None:
             data = json.dumps(data)
@@ -97,6 +101,7 @@ class Caller(object):
                 sleep(tries)
         return response
 
+    @LogMe
     def test_connection(self) -> bool:
         try:
             r = self.get("mgmtaccess")
@@ -105,6 +110,7 @@ class Caller(object):
             self.logger.warning(f"ASA connection test failed: {e}")
             return False
 
+    @LogMe
     def save_config(self):
         response = self.post("commands/writemem")
         if response.status_code != requests.codes.ok:
