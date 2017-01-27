@@ -152,3 +152,16 @@ class ACL(object):
             else:
                 sleep(3)
             count += 100
+
+    @LogMe
+    def match_shadow_rules(self, rules: list) -> list:
+        matches = []
+        while len(rules) > 0:
+            rule_a = rules.pop(0)
+            for rule_b in rules:
+                if rule_a is not rule_b:
+                    if rule_a in rule_b:
+                        matches.append((rule_b, rule_a))
+                    if rule_b in rule_a:
+                        matches.append((rule_a, rule_b))
+        return matches
