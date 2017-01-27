@@ -1,4 +1,8 @@
 import logging
+import sys
+
+if sys.version_info[0:2] < (3, 6):
+    raise RuntimeError('Python 3.6.x or higher is required!')
 
 logger = logging.getLogger("pyASA")
 logger.setLevel(logging.WARNING)
