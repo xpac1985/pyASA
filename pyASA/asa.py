@@ -1,13 +1,13 @@
 import logging
-import re
-from requests.packages import urllib3
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+import requests
 from netaddr import IPAddress
-
 from pyASA.acl import ACL
 from pyASA.caller import Caller
 from pyASA.logme import LogMe
+import re
+from requests.packages import urllib3
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 
 class ASA(object):
@@ -44,10 +44,18 @@ class ASA(object):
         self._caller = Caller(self.baseurl, self._http_auth, self.validate_cert, self.debug, self.timeout, self.retries)
         self.acl = ACL(self._caller)
 
-    ### Property getter and setter ###
+    ### Property getters and setters ###
 
     @property
     def host(self) -> str:
+        """
+        Return/set the hostname or IP used for HTTP connections.
+
+        Setter strips whitespace and checks if string is actually a valid hostname or IP, else raises ValueError.
+
+        Returns:
+            str: Sanitized hostname as used in HTTP connections.
+        """
         return self._host
 
     @host.setter
@@ -62,6 +70,14 @@ class ASA(object):
 
     @property
     def user(self) -> str:
+        """
+        Return/set the username or IP used for HTTP(S) authentication.
+
+        Setter strips whitespace.
+
+        Returns:
+            str: Sanitized username as used in HTTP(S) connections.
+        """
         return self._user
 
     @user.setter
@@ -72,6 +88,14 @@ class ASA(object):
 
     @property
     def password(self) -> str:
+        """
+        Return/set the password or IP used for HTTP(S) authentication.
+
+        Setter strips whitespace.
+
+        Returns:
+            str: Sanitized password as used in HTTP(S) authentication.
+        """
         return self._password
 
     @password.setter
@@ -82,6 +106,12 @@ class ASA(object):
 
     @property
     def use_https(self) -> bool:
+        """
+        Return/set use of HTTPS instead of HTTP for API requests.
+
+        Returns:
+            bool: True if HTTPS is used, False if not
+        """
         return self._use_https
 
     @use_https.setter
@@ -92,6 +122,14 @@ class ASA(object):
 
     @property
     def port(self) -> int:
+        """
+        Return/set port used in HTTP connections.
+
+        Setter checks if port is in range 1..65535.
+
+        Returns:
+            int: Port number used for API requests.
+        """
         return self._port
 
     @port.setter
@@ -105,6 +143,15 @@ class ASA(object):
 
     @property
     def url_prefix(self) -> str:
+        """
+        Return/set prefix used for API requests.
+
+        Necessary if API url is non default, e.g. modified by a reverse proxy.
+        Setter validates that there is either no prefix or one starting and ending with a '/'
+
+        Returns:
+            str: Sanitized prefix used for API requests.
+        """
         return self._url_prefix
 
     @url_prefix.setter
@@ -129,6 +176,14 @@ class ASA(object):
 
     @property
     def validate_cert(self) -> bool:
+        """
+        Return/set validation of certificates if HTTPS is used.
+
+        Necessary if ASA uses self-signed or otherwise invalid SSL certificates.
+
+        Returns:
+            bool: True if certificate validation is active, False if not.
+        """
         return self._validate_cert
 
     @validate_cert.setter
@@ -141,6 +196,14 @@ class ASA(object):
 
     @property
     def debug(self) -> bool:
+        """
+        Return/set debug mode status.
+
+        If True, logger will output a lot of debug information for analysis.
+
+        Returns:
+            bool: True if debug is enabled, False if not.
+        """
         return self._debug
 
     @debug.setter
@@ -151,19 +214,35 @@ class ASA(object):
 
     @property
     def timeout(self) -> int:
+        """
+        Return/set timeout for HTTP(S) connections.
+
+        Setter checks if value is within range of 1..300 seconds.
+
+        Returns:
+            int: Timeout used for API requests.
+        """
         return self._timeout
 
     @timeout.setter
     def timeout(self, timeout: int):
-        if 0.001 <= int(timeout) <= 300:
+        if 1 <= int(timeout) <= 300:
             self._timeout = int(timeout)
             if self._caller:
                 self._caller.update(timeout=self.timeout)
         else:
-            raise ValueError(f"{timeout} is outside of valid timeout range 0.001 - 300 seconds")
+            raise ValueError(f"{timeout} is outside of valid timeout range 1 - 300 seconds")
 
     @property
     def retries(self):
+        """
+        Return/set retries when an bulk API request fails.
+
+        As the ASA API agent tends to crash especially on bulk operations, some retries are made before failing.
+
+        Returns:
+            int: Count of retries for bulk API requests.
+        """
         return self._retries
 
     @retries.setter
@@ -179,8 +258,10 @@ class ASA(object):
     @property
     def baseurl(self) -> str:
         """
-        Returns base URL string used to connect to API.
-        Only uses port if not default http/https port
+        Return URL used for API requests, madeup of configured host, port, HTTP/HTTPs and url prefix.
+
+        Returns:
+            str: URL used for API requests
         """
         if self.use_https:
             return f"https://{self.host}{f':{self.port}' if self.port != 443 else ''}{self.url_prefix}/api"
@@ -195,15 +276,38 @@ class ASA(object):
 
     @LogMe
     def save_config(self):
+        """
+        Call API to make the ASA write the running config to the startup config file
+
+        Convenience method - the actual work is done in Caller.save_config()
+        """
         self._caller.save_config()
 
     @LogMe
     def get_management_access_info(self) -> dict:
-        r = self._caller.get("mgmtaccess")
-        return r.json()
+        """
+        Get ASA management settings via API call.
+
+        Returns a dictionary containing several settings for management access, like SSH, HTTP(S) and others.
+
+        Returns:
+            dict: Dict containing ASA management settings.
+        """
+        response = self._caller.get("mgmtaccess")
+        if response.status_code != requests.codes.ok:
+            raise RuntimeError(f"Fetching management access settings with HTTP {response.status_code}")
+        return response.json()
 
     @LogMe
     def test_connection(self) -> bool:
+        """
+        Check if connection to ASA can be established.
+
+        Checks if use of HTTPS and port number match and logs a warning if they don't.
+
+        Returns:
+            bool: True if connection could be made, False if not.
+        """
         if self.use_https and self.port == 80:
             self._logger.warning("You are using HTTPS with port 80. This is most likely not correct.")
         if not self.use_https and self.port == 443:
@@ -212,12 +316,30 @@ class ASA(object):
 
     @classmethod
     def _validate_hostname(cls, hostname: str) -> bool:
+        """
+        Check if argument is a valid hostname using regex.
+
+        Args:
+            hostname: hostname to be validated
+
+        Returns:
+            bool: True if argument is a valid hostname, False if not
+        """
         hostname_regex = re.compile(
             r"(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?")
         return bool(hostname_regex.fullmatch(hostname))
 
     @classmethod
     def _validate_ip(cls, ip: str) -> bool:
+        """
+        Check if argument is a valid IPv4 or IPv6 address.
+
+        Args:
+            ip: IP string to be checked
+
+        Returns:
+            bool: True if argument is a valid IP, False if not
+        """
         try:
             IPAddress(ip)
             return True
