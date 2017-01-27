@@ -13,21 +13,22 @@ Installation
 Install last published version via pip
 ``pip install pyASA``
 
-=======
-LICENSE
-=======
-
-MIT. See LICENSE file for details.
-
 =====
-USAGE
+Usage
 =====
 
 Only in-code documentation so far.
 
 Create an ASA object, supplying at least hostname, username and password for API access.
-``
-myasa = ASA("192.168.17.1", "admin", "cisco")
-rules = myasa.acl.get_rules("MYACL")
-print(rules)
-``
+
+.. code:: python
+
+    myasa = ASA("192.168.17.1", "admin", "cisco")
+    rules = myasa.acl.get_rules("MYACL")
+    print(rules)
+
+=======
+License
+=======
+
+MIT. See LICENSE file for details.
