@@ -94,3 +94,4 @@ ENV/
 Test Szenario.txt
 pyASA/testme.py
 /test/online/settings.py
+shadow rules.txt
