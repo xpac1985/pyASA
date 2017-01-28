@@ -24,6 +24,8 @@ Create an ASA object, supplying at least hostname, username and password for API
 
 .. code:: python
 
+    from pyASA.asa import ASA
+
     myasa = ASA("192.168.17.1", "admin", "cisco")
     rules = myasa.acl.get_rules("MYACL")
     print(rules)
