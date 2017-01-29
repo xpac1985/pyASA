@@ -98,7 +98,7 @@ class Test_RuleGeneric(object):
             generic_rule.is_access_rule = "testing"
 
     def test_get_logging(self, generic_rule: RuleGeneric):
-        assert generic_rule.logging == RuleLogging(60, LogLevel.DEBUGGING)
+        assert generic_rule.logging == RuleLogging(LogLevel.DEBUGGING, 60)
 
     def test_set_logging(self, generic_rule: RuleGeneric):
         generic_rule.logging = RuleLogging()
@@ -182,8 +182,8 @@ class Test_RuleGeneric(object):
             RuleGeneric._parse_protocol_json(data)
 
     def test_to_cli(self, generic_rule: RuleGeneric):
-        assert generic_rule.to_cli() == "extended permit eigrp 192.168.23.0 255.255.255.0 192.168.24.0 255.255.255.0 log Debugging interval 60 inactive"
-        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit eigrp 192.168.23.0 255.255.255.0 192.168.24.0 255.255.255.0 log Debugging interval 60 inactive"
+        assert generic_rule.to_cli() == "extended permit eigrp 192.168.23.0 255.255.255.0 192.168.24.0 255.255.255.0 log debugging interval 60 inactive"
+        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit eigrp 192.168.23.0 255.255.255.0 192.168.24.0 255.255.255.0 log debugging interval 60 inactive"
 
     def test_from_dict(self, generic_rule: RuleGeneric):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.0/24'},
@@ -392,8 +392,8 @@ class Test_RuleTCPUDP(object):
             RuleTCPUDP._parse_port_json({"kind": "TcpUdpService", "value": "tcp/!=22"})
 
     def test_to_cli(self, generic_rule: RuleTCPUDP):
-        assert generic_rule.to_cli() == "extended permit tcp host 192.168.23.31 192.168.24.0 255.255.255.0 eq 22 log Debugging interval 60 inactive"
-        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit tcp host 192.168.23.31 192.168.24.0 255.255.255.0 eq 22 log Debugging interval 60 inactive"
+        assert generic_rule.to_cli() == "extended permit tcp host 192.168.23.31 192.168.24.0 255.255.255.0 eq ssh log debugging interval 60 inactive"
+        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit tcp host 192.168.23.31 192.168.24.0 255.255.255.0 eq ssh log debugging interval 60 inactive"
 
     def test_from_dict(self):
         data = {"permit": True, "sourceAddress": {"kind": "IPv6Address", "value": "::1"},
@@ -592,8 +592,8 @@ class Test_RuleICMP(object):
         assert isinstance(rule_from_dict(data), RuleICMP)
 
     def test_to_cli(self, generic_rule: RuleICMP):
-        assert generic_rule.to_cli() == "extended permit icmp host 192.168.23.31 192.168.24.0 255.255.255.0 echo 5 log Debugging interval 60 inactive"
-        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit icmp host 192.168.23.31 192.168.24.0 255.255.255.0 echo 5 log Debugging interval 60 inactive"
+        assert generic_rule.to_cli() == "extended permit icmp host 192.168.23.31 192.168.24.0 255.255.255.0 echo 5 log debugging interval 60 inactive"
+        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit icmp host 192.168.23.31 192.168.24.0 255.255.255.0 echo 5 log debugging interval 60 inactive"
 
     def test_to_dict(self, generic_rule: RuleICMP):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
@@ -609,7 +609,7 @@ class Test_RuleICMP(object):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
                 'sourceService': {'kind': 'NetworkProtocol', 'value': 'icmp6'},
-                'destinationService': {'kind': 'ICMPService', 'value': 'icmp6/echo-reply'}, 'active': False,
+                'destinationService': {'kind': 'ICMP6Service', 'value': 'icmp6/echo-reply'}, 'active': False,
                 'remarks': ['ICMP Test Rule'], 'ruleLogging': {'logStatus': 'Debugging', 'logInterval': 60},
                 'position': 17, 'isAccessRule': True, 'objectId': 1234567}
         assert generic_rule.to_dict() == data

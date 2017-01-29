@@ -4,7 +4,7 @@ import logging
 
 class LogMe(object):
     """
-    NOT IN USE due to major bugs
+    NOT IN USE due to some bugs
 
     Utility class returning a decorator that can be attached to functions and methods.
 

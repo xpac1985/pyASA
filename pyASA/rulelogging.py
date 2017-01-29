@@ -14,7 +14,7 @@ class LogLevel(Enum):
     INFORMATIONAL = "Informational"
     DEBUGGING = "Debugging"
 
-    def to_cli(self):
+    def to_cli(self) -> str:
         if self.value == "Disabled":
             return "disable"
         elif self.value == "Default":
@@ -23,11 +23,8 @@ class LogLevel(Enum):
             return self.value.lower()
 
     @classmethod
-    def from_cli(cls, line: str) -> object:
-        if line == "disable":
-            return LogLevel.DISABLE
-        else:
-            return LogLevel[line.upper()]
+    def from_cli(cls, line: str) -> "LogLevel":
+        return LogLevel[line.upper()]
 
 
 class RuleLogging(BaseConfigObject):
@@ -73,7 +70,10 @@ class RuleLogging(BaseConfigObject):
         return cls(LogLevel(data["logStatus"].capitalize()), data["logInterval"])
 
     def to_cli(self) -> str:
-        return f"log {self.level.to_cli()} interval {self.interval}"
+        if self.level in [LogLevel.DEFAULT, LogLevel.DISABLE]:
+            return f"{self.level.to_cli()}"
+        else:
+            return f"log {self.level.to_cli()} interval {self.interval}"
 
     def to_dict(self) -> dict:
         return {"logStatus": self._level.value, "logInterval": self._interval}

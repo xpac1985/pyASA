@@ -1,9 +1,12 @@
 import logging
-from pyASA.logme import LogMe
+from time import sleep
+from typing import List, Dict
+from typing import Optional
+
+import requests.status_codes
+
 from pyASA.caller import Caller
 from pyASA.rule import RuleGeneric, rule_from_dict
-import requests.status_codes
-from time import sleep
 
 
 class ACL(object):
@@ -64,7 +67,7 @@ class ACL(object):
         else:
             raise ValueError(f"{type(objectid)} is not a valid rule argument type")
 
-    def delete_rules(self, acl: str, objectids: [None, list] = None):
+    def delete_rules(self, acl: str, objectids: Optional[List[int]] = None):
         """
         Delete multiple or all rules from ACL.
 
@@ -79,8 +82,10 @@ class ACL(object):
         """
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
-        if not isinstance(objectids, (type(None), list)):
+        if not isinstance(objectids, (None, list)):
             raise ValueError(f"{type(acl)} is not a valid objectids argument type")
+        if not all([isinstance(objectid, int) for objectid in objectids]):
+            raise ValueError("objectids argument list contains non-int object")
         if objectids is None:
             rules = self.get_rules(acl)
             objectids = [rule.objectid for rule in rules]
@@ -123,7 +128,7 @@ class ACL(object):
                 f"Getting rule count for ACL {acl} failed with HTTP {response.status_code}")
         return response.json()["rangeInfo"]["total"]
 
-    def get_rules(self, acl: str) -> list:
+    def get_rules(self, acl: str) -> List[RuleGeneric]:
         """
         Return all rules in an ACL.
 
@@ -152,7 +157,7 @@ class ACL(object):
                     f"Requesting ACL {acl} failed with HTTP {response.status_code}: {response.json()['messages']['details']}")
         return rules
 
-    def get_acls(self) -> list:
+    def get_acls(self) -> List[str]:
         """
         Get list of all ACLs on ASA
 
@@ -229,8 +234,8 @@ class ACL(object):
                 sleep(3)
             count += 100
 
-    @classmethod
-    def match_shadow_rules(cls, rules: list) -> dict:
+    @staticmethod
+    def match_shadow_rules(rules: List[RuleGeneric]) -> Dict[int, Dict[RuleGeneric, List[RuleGeneric]]]:
         """
         Return rules which shadow other rules in the list.
 

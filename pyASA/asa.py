@@ -1,13 +1,13 @@
 import logging
+import re
 
 import requests
 from netaddr import IPAddress
-from pyASA.acl import ACL
-from pyASA.caller import Caller
-from pyASA.logme import LogMe
-import re
 from requests.packages import urllib3
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+from pyASA.acl import ACL
+from pyASA.caller import Caller
 
 
 class ASA(object):
@@ -20,24 +20,15 @@ class ASA(object):
                  url_prefix: str = "/", validate_cert: bool = True, debug: bool = False, timeout: int = 10,
                  retries: int = 2):
 
+        # Create used object instances
+        self._caller = Caller()
         self._logger = logging.getLogger("pyASA")
-        if debug:
-            self._logger.setLevel(logging.DEBUG)
+        self.acl = ACL(self._caller)
 
-        # Create variables and set to defaults in case of uncaught failure
-        self._host = ""
-        self._user = ""
-        self._password = ""
-        self._use_https = True
-        self._port = 443
-        self._url_prefix = "/"
-        self._validate_cert = True
+        # Set internal variables to default, in case of strange failure
         self._debug = False
-        self._timeout = 10
-        self._retries = 2
 
         # Set variables to provided values
-        self._caller = None
         self.host = host
         self.user = user
         self.password = password
@@ -48,8 +39,6 @@ class ASA(object):
         self.debug = debug
         self.timeout = timeout
         self.retries = retries
-        self._caller = Caller(self.baseurl, self._http_auth, self.validate_cert, self.timeout, self.retries)
-        self.acl = ACL(self._caller)
 
     # Property getters and setters #
 
@@ -63,17 +52,17 @@ class ASA(object):
         Returns:
             Sanitized hostname as used in HTTP connections
         """
-        return self._host
+        return self._caller.host
 
     @host.setter
     def host(self, host: str):
-        temp_host = str(host).strip()
-        if ASA._validate_hostname(temp_host) or ASA._validate_ip(temp_host):
-            self._host = temp_host
-            if self._caller:
-                self._caller.update(baseurl=self.baseurl)
+        if not isinstance(host, str):
+            raise ValueError(f"{type(host)} is not a valid host argument type")
+        host = str(host).strip()
+        if ASA._validate_hostname(host) or ASA._validate_ip(host):
+            self._caller.host = host
         else:
-            raise ValueError(f"String '{temp_host}' is not a valid hostname or IP address.")
+            raise ValueError(f"String '{host}' is not a valid hostname or IP address.")
 
     @property
     def user(self) -> str:
@@ -85,13 +74,13 @@ class ASA(object):
         Returns:
             Sanitized username as used in HTTP(S) connections
         """
-        return self._user
+        return self._caller.user
 
     @user.setter
     def user(self, user: str):
-        self._user = str(user).strip()
-        if self._caller:
-            self._caller.update(http_auth=self._http_auth)
+        if not isinstance(user, str):
+            raise ValueError(f"{type(user)} is not a valid user argument type")
+        self._caller.user = str(user).strip()
 
     @property
     def password(self) -> str:
@@ -103,13 +92,13 @@ class ASA(object):
         Returns:
             Sanitized password as used in HTTP(S) authentication
         """
-        return self._password
+        return self._caller.password
 
     @password.setter
     def password(self, password: str):
-        self._password = str(password).strip()
-        if self._caller:
-            self._caller.update(http_auth=self._http_auth)
+        if not isinstance(password, str):
+            raise ValueError(f"{type(password)} is not a valid password argument type")
+        self._caller.password = str(password).strip()
 
     @property
     def use_https(self) -> bool:
@@ -119,13 +108,13 @@ class ASA(object):
         Returns:
             True if HTTPS is used, False if not
         """
-        return self._use_https
+        return self._caller.use_https
 
     @use_https.setter
     def use_https(self, use_https: bool):
-        self._use_https = bool(use_https)
-        if self._caller:
-            self._caller.update(baseurl=self.baseurl)
+        if not isinstance(use_https, bool):
+            raise ValueError(f"{type(use_https)} is not a valid use_https argument type")
+        self._caller.use_https = bool(use_https)
 
     @property
     def port(self) -> int:
@@ -137,14 +126,14 @@ class ASA(object):
         Returns:
             Port number used for API requests
         """
-        return self._port
+        return self._caller.port
 
     @port.setter
     def port(self, port: int):
+        if not isinstance(port, int):
+            raise ValueError(f"{type(port)} is not a valid port argument type")
         if 1 <= int(port) <= 65535:
-            self._port = int(port)
-            if self._caller:
-                self._caller.update(baseurl=self.baseurl)
+            self._caller.port = int(port)
         else:
             raise ValueError(f"{port} is outside of valid port range 1 - 65535")
 
@@ -159,27 +148,27 @@ class ASA(object):
         Returns:
             Sanitized prefix used for API requests
         """
-        return self._url_prefix
+        return self._caller.url_prefix
 
     @url_prefix.setter
     def url_prefix(self, url_prefix: str):
+        if not isinstance(url_prefix, str):
+            raise ValueError(f"{type(url_prefix)} is not a valid url_prefix argument type")
         # Replace // with single /
         url_prefix = re.sub(r'/{2,}', r'/', str(url_prefix).strip())
         if url_prefix in ("", None):
-            self._url_prefix = ""
+            self._caller.url_prefix = ""
         else:
             if url_prefix[0] == "/":
                 if url_prefix[-1:] == "/":
-                    self._url_prefix = url_prefix[:-1]
+                    self._caller.url_prefix = url_prefix
                 else:
-                    self._url_prefix = f"{url_prefix}"
+                    self._caller.url_prefix = f"{url_prefix}/"
             else:
                 if url_prefix[-1:] == "/":
-                    self._url_prefix = f"/{url_prefix}"
+                    self._caller.url_prefix = f"/{url_prefix}"
                 else:
-                    self._url_prefix = f"/{url_prefix}[:-1]"
-        if self._caller:
-            self._caller.update(baseurl=self.baseurl)
+                    self._caller.url_prefix = f"/{url_prefix}/"
 
     @property
     def validate_cert(self) -> bool:
@@ -191,23 +180,23 @@ class ASA(object):
         Returns:
             True if certificate validation is active, False if not
         """
-        return self._validate_cert
+        return self._caller.validate_cert
 
     @validate_cert.setter
     def validate_cert(self, validate_cert: bool):
-        self._validate_cert = bool(validate_cert)
+        if not isinstance(validate_cert, bool):
+            raise ValueError(f"{type(validate_cert)} is not a valid validate_cert argument type")
+        self._caller.validate_cert = bool(validate_cert)
         if not validate_cert:
             # Warnings in urllib3 can only be disabled, not reenabled
             urllib3.disable_warnings(InsecureRequestWarning)
-        if self._caller:
-            self._caller.update(validate_cert=self._validate_cert)
 
     @property
     def debug(self) -> bool:
         """
         Return/set debug mode status.
 
-        If True, logger will output a lot of debug information for analysis.
+        If True, logger will output a lot of debug information for analysis, else it will only output warnings.
 
         Returns:
             True if debug is enabled, False if not
@@ -216,7 +205,13 @@ class ASA(object):
 
     @debug.setter
     def debug(self, debug: bool):
+        if not isinstance(debug, bool):
+            raise ValueError(f"{type(debug)} is not a valid debug argument type")
         self._debug = bool(debug)
+        if self._debug:
+            self._logger.setLevel(logging.DEBUG)
+        else:
+            self._logger.setLevel(logging.WARNING)
 
     @property
     def timeout(self) -> int:
@@ -228,14 +223,14 @@ class ASA(object):
         Returns:
             Timeout used for API requests
         """
-        return self._timeout
+        return self._caller.timeout
 
     @timeout.setter
     def timeout(self, timeout: int):
+        if not isinstance(timeout, bool):
+            raise ValueError(f"{type(timeout)} is not a valid timeout argument type")
         if 1 <= int(timeout) <= 300:
-            self._timeout = int(timeout)
-            if self._caller:
-                self._caller.update(timeout=self.timeout)
+            self._caller.timeout = int(timeout)
         else:
             raise ValueError(f"{timeout} is outside of valid timeout range 1 - 300 seconds")
 
@@ -249,17 +244,15 @@ class ASA(object):
         Returns:
             Count of retries for bulk API requests
         """
-        return self._retries
+        return self._caller.retries
 
     @retries.setter
     def retries(self, retries: int):
         if not isinstance(retries, int):
-            raise ValueError(f"{type(retries)} is not a valid retry argument type")
-        if not (0 <= retries <= 10):
+            raise ValueError(f"{type(retries)} is not a valid retries argument type")
+        if not 0 <= int(retries) <= 10:
             raise ValueError(f"retries must be in range 0..10")
-        self._retries = int(retries)
-        if self._caller:
-            self._caller.update(retries=self._retries)
+        self._caller.retries = int(retries)
 
     @property
     def baseurl(self) -> str:
@@ -278,7 +271,7 @@ class ASA(object):
     def _http_auth(self) -> (str, str):
         return self.user, self.password
 
-    ### Methods ###
+    # Methods #
 
     def save_config(self):
         """

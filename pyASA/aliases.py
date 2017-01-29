@@ -1,6 +1,6 @@
 import json
 import os
-from pyASA.logme import LogMe
+from typing import Dict, Tuple
 
 
 class Aliases(object):
@@ -17,8 +17,8 @@ class Aliases(object):
         """
         Aliases.by_alias, Aliases.by_number = Aliases.load_aliases()
 
-    @classmethod
-    def load_aliases_file(cls, filename: str) -> dict:
+    @staticmethod
+    def load_aliases_file(filename: str) -> Dict[str, int]:
         """
         Return dict of ip protocol/tcp+udp service/icmp+icmp6 type aliases loaded from JSON file.
 
@@ -36,8 +36,8 @@ class Aliases(object):
             aliases = json.load(aliases_file)
         return aliases
 
-    @classmethod
-    def load_aliases(cls) -> (dict, dict):
+    @staticmethod
+    def load_aliases() -> Tuple[Dict[str, int], Dict[int, str]]:
         """
         Return dicts containing subdicts for mappings of alias name -> number and number -> alias name
 

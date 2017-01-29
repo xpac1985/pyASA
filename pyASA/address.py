@@ -1,4 +1,6 @@
 from abc import abstractmethod
+from typing import Dict, Union
+
 from netaddr import IPAddress, IPNetwork
 from pyASA.baseconfigobject import BaseConfigObject
 
@@ -10,11 +12,11 @@ class BaseAddress(BaseConfigObject):
 
     @classmethod
     @abstractmethod
-    def from_dict(cls, data: dict) -> object:
+    def from_dict(cls, data: Dict[str, Union[str, dict]]) -> object:
         raise NotImplementedError()
 
     @abstractmethod
-    def to_dict(self) -> str:
+    def to_cli(self) -> str:
         raise NotImplementedError
 
     @abstractmethod
@@ -29,16 +31,16 @@ class AnyAddress(BaseAddress):
     """
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, str]) -> "AnyAddress":
         return cls()
 
     def to_cli(self) -> str:
         return "any"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, str]:
         return dict(kind="AnyIPAddress", value="any")
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item: object) -> bool:
         """
         As "any" covers every valid IPv4 or IPv6 address, this is always true if tested with such an object.
 
@@ -55,7 +57,7 @@ class AnyAddress(BaseAddress):
 
 
 class Address(BaseAddress, IPNetwork):
-    def __init__(self, address: [str, IPAddress, IPNetwork]):
+    def __init__(self, address: Union[str, IPAddress, IPNetwork]):
         if isinstance(address, str):
             if address == "any4":
                 IPNetwork.__init__(self, "0.0.0.0/0")
@@ -79,7 +81,7 @@ class Address(BaseAddress, IPNetwork):
             raise ValueError(f"{type(address)} is not a valid argument type")
 
     @classmethod
-    def from_cli(cls, line: str) -> object:
+    def from_cli(cls, line: str) -> "Address":
         """
         Return Address object based on part of ASA CLI address data.
 
@@ -91,7 +93,7 @@ class Address(BaseAddress, IPNetwork):
             new Address object, created from CLI data
         """
         line = line.replace("host ", "")
-        return Address(line)
+        return cls(line)
 
     def to_cli(self) -> str:
         """
@@ -116,12 +118,12 @@ class Address(BaseAddress, IPNetwork):
                 return f"{self.cidr}"
 
     @classmethod
-    def from_dict(cls, data: dict) -> object:
+    def from_dict(cls, data: Dict[str, Union[str, dict]]) -> object:
         """
         Return Address object based on part of ASA API JSON data.
 
         Args:
-            line: dict containing JSON data from API
+            data: dict containing JSON data from API
              e.g. {"kind": "IPv4Address", "value": "192.168.42.0/24"}
 
         Returns:
@@ -135,7 +137,7 @@ class Address(BaseAddress, IPNetwork):
         else:
             raise ValueError(f"Object of kind '{data['kind']}' not supported")
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Union[str, dict]]:
         """
         Return API dict representation of Address object.
 

@@ -1,7 +1,7 @@
 import copy
 import re
 from enum import Enum
-from random import randint, choice, getrandbits
+from random import randint, choice
 
 from netaddr import IPAddress, IPNetwork
 
@@ -27,63 +27,12 @@ class ServiceComparator(Enum):
         return translate[line]
 
 
-def rule_from_cli(line: str) -> object:
-    # very complex regular expression roughly validating and seperating valid ASA ACL CLI lines.
-    # For understanding and debugging see https://regex101.com/ or https://www.debuggex.com/
-    cli_line_regex = r"^(?:(?:access-list (?P<acl>[\w\d]+) (?:line (?P<line>\d+) )?)?extended )?(?P<permit>deny|permit) (?P<proto>\w+) (?P<src>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?: (?P<srccomp>eq|neq|gt|lt) (?P<srcport>\d{1,5}|[\d\w-]+))? (?P<dst>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?:(?: (?P<dstcomp>eq|neq|gt|lt) (?P<dstport>\d{1,5}|[\d\w-]+))|\s(?P<icmptype>[a-z\d-]+)\s?(?P<icmpcode>\d{1,3})?)?(?: log (?P<level>\w+)(?: interval (?P<interval>\d+))?(?: (?P<active>inactive))?)?$"
-    regex = re.compile(cli_line_regex)
-    finder = regex.fullmatch(line)
-    if finder is None:
-        raise ValueError("line parameter is not a valid ACL cli line")
-    permit = True if finder.group("permit") == "permit" else False
-    active = False if finder.group("active") else True
-    proto = Aliases.by_alias["protocol"][finder.group("proto")] if finder.group("proto") in Aliases.by_alias[
-        "protocol"] else int(finder.group("proto"))
-    src = Address.from_cli(finder.group("src")) if finder.group("src") != "any" else AnyAddress()
-    dst = Address.from_cli(finder.group("dst")) if finder.group("dst") != "any" else AnyAddress()
-    if finder.group("level"):
-        if finder.group("interval"):
-            log = RuleLogging(interval=int(finder.group("interval")), level=LogLevel.from_cli(finder.group("level")))
-        else:
-            log = RuleLogging(level=LogLevel.from_cli(finder.group("level")))
-    else:
-        log = RuleLogging()
-    position = int(finder.group("line")) if finder.group("line") else 0
-    if proto in [6, 17]:
-        srcport = finder.group("srcport") if finder.group("srcport") else -1
-        dstport = finder.group("dstport") if finder.group("srcport") else -1
-        srccomp = ServiceComparator.from_cli(finder.group("srccomp")) if finder.group(
-            "srccomp") else ServiceComparator.EQUAL
-        dstcomp = ServiceComparator.from_cli(finder.group("dstcomp")) if finder.group(
-            "srccomp") else ServiceComparator.EQUAL
-        return RuleTCPUDP(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log, src_port=srcport,
-                          dst_port=dstport, src_comparator=srccomp, dst_comparator=dstcomp, position=position)
-    elif proto in [1, 58]:
-        type = finder.group("icmptype") if finder.group("icmptype") else -1
-        code = int(finder.group("icmpcode")) if finder.group("icmpcode") else -1
-        return RuleICMP(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log, icmp_type=type,
-                        icmp_code=code, position=position)
-    else:
-        return RuleGeneric(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log,
-                           position=position)
-
-
-def random_rule() -> object:
-    type = randint(1, 4)
-    if type == 1:
-        return RuleTCPUDP.random_rule()
-    elif type == 2:
-        return RuleICMP.random_rule()
-    else:
-        return RuleGeneric.random_rule()
-
-
 class RuleGeneric(BaseConfigObject):
     def __init__(self, permit: bool = False, protocol: [int, str] = "ip",
                  src: [str, IPAddress, IPNetwork, BaseAddress] = "any",
                  dst: [str, IPAddress, IPNetwork, BaseAddress] = "any", remark: [None, str, list] = None,
-                 active: bool = True,
-                 logging: [RuleLogging, None] = None, position: int = 0, is_access_rule: bool = False,
+                 active: bool = True, logging: [RuleLogging, None] = None, position: int = 0,
+                 is_access_rule: bool = False,
                  objectid: int = 0):
 
         self._permit = False
@@ -279,7 +228,7 @@ class RuleGeneric(BaseConfigObject):
             raise ValueError(f"{_protocol} is not a valid protocol alias")
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict) -> "RuleGeneric":
         permit = data["permit"]
         src = data["sourceAddress"]["value"]
         dst = data["destinationAddress"]["value"]
@@ -340,7 +289,7 @@ class RuleGeneric(BaseConfigObject):
         return True
 
     @classmethod
-    def random_rule(cls) -> object:
+    def random_rule(cls) -> "RuleGeneric":
         """
         Return a non-[TCP/UDP/ICMP/ICMP6] rule, with all values besides remark and is_access_rule randomly chosen.
 
@@ -528,7 +477,7 @@ class RuleTCPUDP(RuleGeneric):
         return protocol, port, comparator
 
     @classmethod
-    def from_dict(cls, data: dict) -> object:
+    def from_dict(cls, data: dict) -> "RuleTCPUDP":
         permit = data["permit"]
         src = data["sourceAddress"]["value"]
         dst = data["destinationAddress"]["value"]
@@ -627,7 +576,7 @@ class RuleTCPUDP(RuleGeneric):
         return True
 
     @classmethod
-    def random_rule(cls) -> object:
+    def random_rule(cls) -> "RuleTCPUDP":
         """
         Return a random TCP or UDP rule, with all values besides remark and is_access_rule randomly chosen.
 
@@ -680,9 +629,9 @@ class RuleICMP(RuleGeneric):
     def __init__(self, permit: bool = False, protocol: [int, str] = "icmp",
                  src: [str, IPAddress, IPNetwork, BaseAddress] = "any",
                  dst: [str, IPAddress, IPNetwork, BaseAddress] = "any", icmp_type: [str, int] = "any",
-                 icmp_code: [int, str] = "any", remark: [None, str, list] = None, active: bool = True,
-                 logging: [RuleLogging, None] = None,
-                 position: int = 0, is_access_rule: bool = False, objectid: int = 0):
+                 icmp_code: [str, int] = "any", remark: [None, str, list] = None, active: bool = True,
+                 logging: [RuleLogging, None] = None, position: int = 0, is_access_rule: bool = False,
+                 objectid: int = 0):
 
         RuleGeneric.__init__(self, permit, protocol, src, dst, remark, active, logging, position, is_access_rule,
                              objectid)
@@ -796,7 +745,7 @@ class RuleICMP(RuleGeneric):
         return protocol, icmp_type, icmp_code
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict) -> "RuleICMP":
         permit = data["permit"]
         src = data["sourceAddress"]["value"]
         dst = data["destinationAddress"]["value"]
@@ -853,7 +802,7 @@ class RuleICMP(RuleGeneric):
         return True
 
     @classmethod
-    def random_rule(cls) -> object:
+    def random_rule(cls) -> "RuleICMP":
         """
         Return a random ICMP or ICMP6 rule, with all values besides remark and is_access_rule randomly chosen.
 
@@ -904,3 +853,55 @@ def rule_from_dict(data: dict) -> RuleGeneric:
         return RuleICMP.from_dict(data)
     else:
         return RuleGeneric.from_dict(data)
+
+
+def rule_from_cli(line: str) -> RuleGeneric:
+    # very complex regular expression roughly validating and seperating valid ASA ACL CLI lines.
+    # For understanding and debugging see https://regex101.com/ or https://www.debuggex.com/
+    cli_line_regex = r"^(?:(?:access-list (?P<acl>[\w\d]+) (?:line (?P<line>\d+) )?)?extended )?(?P<permit>deny|permit) (?P<proto>\w+) (?P<src>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?: (?P<srccomp>eq|neq|gt|lt) (?P<srcport>\d{1,5}|[\d\w-]+))? (?P<dst>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?:(?: (?P<dstcomp>eq|neq|gt|lt) (?P<dstport>\d{1,5}|[\d\w-]+))|\s(?P<icmptype>[a-z\d-]+)\s?(?P<icmpcode>\d{1,3})?)?(?: log (?P<level>\w+)(?: interval (?P<interval>\d+))?(?: (?P<active>inactive))?)?$"
+    regex = re.compile(cli_line_regex)
+    finder = regex.fullmatch(line)
+    if finder is None:
+        raise ValueError("line parameter is not a valid ACL cli line")
+    permit = True if finder.group("permit") == "permit" else False
+    active = False if finder.group("active") else True
+    proto = Aliases.by_alias["protocol"][finder.group("proto")] if finder.group("proto") in Aliases.by_alias[
+        "protocol"] else int(finder.group("proto"))
+    src = Address.from_cli(finder.group("src")) if finder.group("src") != "any" else AnyAddress()
+    dst = Address.from_cli(finder.group("dst")) if finder.group("dst") != "any" else AnyAddress()
+    if finder.group("level"):
+        if finder.group("interval"):
+            log = RuleLogging(interval=int(finder.group("interval")), level=LogLevel.from_cli(finder.group("level")))
+        else:
+            log = RuleLogging(level=LogLevel.from_cli(finder.group("level")))
+    else:
+        log = RuleLogging()
+    position = int(finder.group("line")) if finder.group("line") else 0
+    if proto in [6, 17]:
+        srcport = finder.group("srcport") if finder.group("srcport") else -1
+        dstport = finder.group("dstport") if finder.group("srcport") else -1
+        srccomp = ServiceComparator.from_cli(finder.group("srccomp")) if finder.group(
+            "srccomp") else ServiceComparator.EQUAL
+        dstcomp = ServiceComparator.from_cli(finder.group("dstcomp")) if finder.group(
+            "srccomp") else ServiceComparator.EQUAL
+        return RuleTCPUDP(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log, src_port=srcport,
+                          dst_port=dstport, src_comparator=srccomp, dst_comparator=dstcomp, position=position)
+    elif proto in [1, 58]:
+        icmp_type = finder.group("icmptype") if finder.group("icmptype") else -1
+        icmp_code = int(finder.group("icmpcode")) if finder.group("icmpcode") else -1
+        return RuleICMP(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log,
+                        icmp_type=icmp_type,
+                        icmp_code=icmp_code, position=position)
+    else:
+        return RuleGeneric(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log,
+                           position=position)
+
+
+def random_rule() -> RuleGeneric:
+    ruletype = randint(1, 4)
+    if ruletype == 1:
+        return RuleTCPUDP.random_rule()
+    elif ruletype == 2:
+        return RuleICMP.random_rule()
+    else:
+        return RuleGeneric.random_rule()

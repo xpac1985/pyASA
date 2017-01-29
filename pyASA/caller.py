@@ -1,10 +1,9 @@
 import json
 import logging
-
-import copy
-import requests
 from time import sleep
-from pyASA.logme import LogMe
+from typing import Optional, Dict, List, Tuple
+
+import requests
 
 
 class Caller(object):
@@ -14,46 +13,48 @@ class Caller(object):
     Provides some additional utility methods for connection testing, etc.
     """
 
-    def __init__(self, baseurl: str, http_auth: tuple, validate_cert: bool, timeout: int, retries: int):
+    def __init__(self):
         # HTTP headers used when connectiong to API
         self.headers = {
             'content-type': 'application/json',
             "user-agent": "pyASA"
         }
 
-        self.baseurl = baseurl
-        self.http_auth = http_auth
-        self.validate_cert = validate_cert
-        self.timeout = timeout
-        self.retries = retries
+        # Create variables and set to defaults in case of uncaught failure
         self.logger = logging.getLogger("pyASA")
 
-    def update(self, baseurl: str = None, http_auth: tuple = None, validate_cert: bool = None, timeout: int = None,
-               retries: int = None):
+        self.host = ""
+        self.user = ""
+        self.password = ""
+        self.use_https = True
+        self.port = 443
+        self.url_prefix = "/"
+        self.validate_cert = True
+        self.timeout = 10
+        self.retries = 2
+
+    # Properties #
+
+    @property
+    def baseurl(self) -> str:
         """
-        Update one or more of the settings used to connect to the API via HTTP(S).
+        Return URL used for API requests, composed from configured host, port, HTTP/HTTPs and url prefix.
 
-        Usually invoked by parent ASA object, which does the input validation before.
-
-        Args:
-            baseurl: Base URL used to connect to ASA REST API
-            http_auth: Username and password tuple, for authentication
-            validate_cert: Whether to validate SSL certs on HTTPS connections
-            timeout (): Timeout value to use for connections
-            retries (): Number of retries when an API call fails with HTTP 500
+        Returns:
+            URL used for API requests
         """
-        if baseurl:
-            self.baseurl = baseurl
-        if http_auth:
-            self.http_auth = http_auth
-        if validate_cert:
-            self.validate_cert = validate_cert
-        if timeout:
-            self.timeout = timeout
-        if retries:
-            self.retries = retries
+        if self.use_https:
+            return f"https://{self.host}{f':{self.port}' if self.port != 443 else ''}{self.url_prefix}/api"
+        else:
+            return f"http://{self.host}{f':{self.port}' if self.port != 80 else ''}{self.url_prefix}/api"
 
-    def delete(self, url: str, parameters: [dict, None] = None) -> requests.Response:
+    @property
+    def http_auth(self) -> Tuple[str, str]:
+        return self.user, self.password
+
+    # Methods #
+
+    def delete(self, url: str, parameters: Optional[Dict] = None) -> requests.Response:
         """
         Call API using HTTP DELETE with baseurl plus supplied url argument, return Response object
 
@@ -70,6 +71,7 @@ class Caller(object):
             parameters = dict(parameters)
         else:
             raise ValueError(f"{type(parameters)} is not a valid parameters argument type")
+        response = None
         tries = 0
         code = 500
         while code == 500 and tries <= self.retries:
@@ -86,7 +88,7 @@ class Caller(object):
                 sleep(tries)
         return response
 
-    def get(self, url: str, parameters: [dict, None] = None) -> requests.Response:
+    def get(self, url: str, parameters: Optional[Dict] = None) -> requests.Response:
         """
         Call API using HTTP GET with baseurl plus supplied url argument, return Response object
 
@@ -103,6 +105,7 @@ class Caller(object):
             parameters = dict(parameters)
         else:
             raise ValueError(f"{type(parameters)} is not a valid parameters argument type")
+        response = None
         tries = 0
         code = 500
         while code == 500 and tries <= self.retries:
@@ -120,7 +123,7 @@ class Caller(object):
                 sleep(tries)
         return response
 
-    def post(self, url: str, data: [dict, list, None] = None) -> requests.Response:
+    def post(self, url: str, data: Optional[Dict, List] = None) -> requests.Response:
         """
         Call API using HTTP POST with baseurl plus supplied url argument, return Response object
 
@@ -137,6 +140,7 @@ class Caller(object):
             data = json.dumps(data)
         else:
             raise ValueError(f"{type(data)} is not a valid parameters argument type")
+        response = None
         tries = 0
         code = 500
         while code == 500 and tries <= self.retries:
@@ -149,11 +153,17 @@ class Caller(object):
             tries += 1
             code = response.status_code
             if code == 500:
-                # If API call failed with HTTP 500, wait for next call the longer the more tries already failed
+                # If API call fails with HTTP 500, wait for next call the longer the more tries already failed
                 sleep(tries)
         return response
 
     def test_connection(self) -> bool:
+        """
+        Make a simple call to the API to test the connection to the ASA.
+
+        Returns:
+            True if successful, False if not
+        """
         try:
             r = self.get("mgmtaccess")
             return r.status_code == requests.codes.ok
