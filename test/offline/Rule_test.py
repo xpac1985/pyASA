@@ -181,6 +181,10 @@ class Test_RuleGeneric(object):
         with pytest.raises(ValueError):
             RuleGeneric._parse_protocol_json(data)
 
+    def test_to_cli(self, generic_rule: RuleGeneric):
+        assert generic_rule.to_cli() == "extended permit eigrp 192.168.23.0 255.255.255.0 192.168.24.0 255.255.255.0 log Debugging interval 60 inactive"
+        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit eigrp 192.168.23.0 255.255.255.0 192.168.24.0 255.255.255.0 log Debugging interval 60 inactive"
+
     def test_from_dict(self, generic_rule: RuleGeneric):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Network', 'value': '192.168.23.0/24'},
                 'destinationAddress': {'kind': 'IPv4Network', 'value': '192.168.24.0/24'},
@@ -387,6 +391,10 @@ class Test_RuleTCPUDP(object):
         with pytest.raises(ValueError):
             RuleTCPUDP._parse_port_json({"kind": "TcpUdpService", "value": "tcp/!=22"})
 
+    def test_to_cli(self, generic_rule: RuleTCPUDP):
+        assert generic_rule.to_cli() == "extended permit tcp host 192.168.23.31 192.168.24.0 255.255.255.0 eq 22 log Debugging interval 60 inactive"
+        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit tcp host 192.168.23.31 192.168.24.0 255.255.255.0 eq 22 log Debugging interval 60 inactive"
+
     def test_from_dict(self):
         data = {"permit": True, "sourceAddress": {"kind": "IPv6Address", "value": "::1"},
                 "destinationAddress": {"kind": "IPv6Network", "value": "::1/128"},
@@ -582,6 +590,10 @@ class Test_RuleICMP(object):
                 "destinationService": {"kind": "ICMPService", "value": "icmp/echo-reply/5"}, "active": True,
                 "remarks": []}
         assert isinstance(rule_from_dict(data), RuleICMP)
+
+    def test_to_cli(self, generic_rule: RuleICMP):
+        assert generic_rule.to_cli() == "extended permit icmp host 192.168.23.31 192.168.24.0 255.255.255.0 echo 5 log Debugging interval 60 inactive"
+        assert generic_rule.to_cli("TEST") == "access-list TEST extended permit icmp host 192.168.23.31 192.168.24.0 255.255.255.0 echo 5 log Debugging interval 60 inactive"
 
     def test_to_dict(self, generic_rule: RuleICMP):
         data = {'permit': True, 'sourceAddress': {'kind': 'IPv4Address', 'value': '192.168.23.31'},

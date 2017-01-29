@@ -3,9 +3,18 @@ from abc import ABC, abstractmethod
 
 
 class BaseConfigObject(ABC):
+    """
+    Base config object class which implements some basic functionality for all other derived classes.
+    Other methods must be individually implemented by derived class.
+    """
+
     @classmethod
     @abstractmethod
     def from_dict(cls, data: dict):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def to_cli(self) -> str:
         raise NotImplementedError()
 
     @abstractmethod

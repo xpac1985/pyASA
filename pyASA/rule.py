@@ -1,13 +1,14 @@
 import copy
 import re
 from enum import Enum
+from random import randint, choice, getrandbits
 
 from netaddr import IPAddress, IPNetwork
 
 from pyASA.address import BaseAddress, Address, AnyAddress
 from pyASA.aliases import Aliases
 from pyASA.baseconfigobject import BaseConfigObject
-from pyASA.rulelogging import RuleLogging
+from pyASA.rulelogging import RuleLogging, LogLevel
 
 
 class ServiceComparator(Enum):
@@ -16,16 +17,65 @@ class ServiceComparator(Enum):
     LESSER = "<"
     GREATER = ">"
 
+    def to_cli(self) -> str:
+        translate = {self.EQUAL: "eq", self.NOT_EQUAL: "neq", self.LESSER: "lt", self.GREATER: "gt"}
+        return translate[self]
 
-def rule_from_dict(data: dict) -> object:
-    if any(any(proto in value for proto in ("tcp", "udp")) for value in
-           (data["sourceService"]["value"], data["destinationService"]["value"])):
-        return RuleTCPUDP.from_dict(data)
-    elif any(any(proto in value for proto in ("icmp", "icmp6")) for value in
-             (data["sourceService"]["value"], data["destinationService"]["value"])):
-        return RuleICMP.from_dict(data)
+    @classmethod
+    def from_cli(cls, line: str) -> object:
+        translate = {"eq": cls.EQUAL, "neq": cls.NOT_EQUAL, "lt": cls.LESSER, "gt": cls.GREATER}
+        return translate[line]
+
+
+def rule_from_cli(line: str) -> object:
+    # very complex regular expression roughly validating and seperating valid ASA ACL CLI lines.
+    # For understanding and debugging see https://regex101.com/ or https://www.debuggex.com/
+    cli_line_regex = r"^(?:(?:access-list (?P<acl>[\w\d]+) (?:line (?P<line>\d+) )?)?extended )?(?P<permit>deny|permit) (?P<proto>\w+) (?P<src>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?: (?P<srccomp>eq|neq|gt|lt) (?P<srcport>\d{1,5}|[\d\w-]+))? (?P<dst>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?:(?: (?P<dstcomp>eq|neq|gt|lt) (?P<dstport>\d{1,5}|[\d\w-]+))|\s(?P<icmptype>[a-z\d-]+)\s?(?P<icmpcode>\d{1,3})?)?(?: log (?P<level>\w+)(?: interval (?P<interval>\d+))?(?: (?P<active>inactive))?)?$"
+    regex = re.compile(cli_line_regex)
+    finder = regex.fullmatch(line)
+    if finder is None:
+        raise ValueError("line parameter is not a valid ACL cli line")
+    permit = True if finder.group("permit") == "permit" else False
+    active = False if finder.group("active") else True
+    proto = Aliases.by_alias["protocol"][finder.group("proto")] if finder.group("proto") in Aliases.by_alias[
+        "protocol"] else int(finder.group("proto"))
+    src = Address.from_cli(finder.group("src")) if finder.group("src") != "any" else AnyAddress()
+    dst = Address.from_cli(finder.group("dst")) if finder.group("dst") != "any" else AnyAddress()
+    if finder.group("level"):
+        if finder.group("interval"):
+            log = RuleLogging(interval=int(finder.group("interval")), level=LogLevel.from_cli(finder.group("level")))
+        else:
+            log = RuleLogging(level=LogLevel.from_cli(finder.group("level")))
     else:
-        return RuleGeneric.from_dict(data)
+        log = RuleLogging()
+    position = int(finder.group("line")) if finder.group("line") else 0
+    if proto in [6, 17]:
+        srcport = finder.group("srcport") if finder.group("srcport") else -1
+        dstport = finder.group("dstport") if finder.group("srcport") else -1
+        srccomp = ServiceComparator.from_cli(finder.group("srccomp")) if finder.group(
+            "srccomp") else ServiceComparator.EQUAL
+        dstcomp = ServiceComparator.from_cli(finder.group("dstcomp")) if finder.group(
+            "srccomp") else ServiceComparator.EQUAL
+        return RuleTCPUDP(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log, src_port=srcport,
+                          dst_port=dstport, src_comparator=srccomp, dst_comparator=dstcomp, position=position)
+    elif proto in [1, 58]:
+        type = finder.group("icmptype") if finder.group("icmptype") else -1
+        code = int(finder.group("icmpcode")) if finder.group("icmpcode") else -1
+        return RuleICMP(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log, icmp_type=type,
+                        icmp_code=code, position=position)
+    else:
+        return RuleGeneric(permit=permit, protocol=proto, src=src, dst=dst, active=active, logging=log,
+                           position=position)
+
+
+def random_rule() -> object:
+    type = randint(1, 4)
+    if type == 1:
+        return RuleTCPUDP.random_rule()
+    elif type == 2:
+        return RuleICMP.random_rule()
+    else:
+        return RuleGeneric.random_rule()
 
 
 class RuleGeneric(BaseConfigObject):
@@ -214,6 +264,10 @@ class RuleGeneric(BaseConfigObject):
         else:
             raise ValueError(f"{type(value)} is not a valid argument type")
 
+    @property
+    def objectid_hexhash(self):
+        return hex(self._objectid)
+
     @classmethod
     def _parse_protocol_json(cls, data: dict) -> int:
         _protocol = data["value"]
@@ -237,6 +291,10 @@ class RuleGeneric(BaseConfigObject):
         is_access_rule = data["isAccessRule"] if "isAccessRule" in data else False
         objectid = int(data["objectId"]) if "objectId" in data else 0
         return cls(permit, protocol, src, dst, remark, active, logging, position, is_access_rule, objectid)
+
+    def to_cli(self, acl: [None, str] = None) -> str:
+        result = f"{'' if acl is None else f'access-list {acl}'} extended {'permit' if self.permit else 'deny'} {self.protocol_alias} {self.src.to_cli()} {self.dst.to_cli()} {self.logging.to_cli()} {'inactive' if not self.active else ''}"
+        return result.strip().replace("  ", " ")
 
     def to_dict(self) -> dict:
         result = {}
@@ -280,6 +338,46 @@ class RuleGeneric(BaseConfigObject):
         if item.active != self.active:
             return False
         return True
+
+    @classmethod
+    def random_rule(cls) -> object:
+        """
+        Return a non-[TCP/UDP/ICMP/ICMP6] rule, with all values besides remark and is_access_rule randomly chosen.
+
+        Mainly used for testing
+
+        Returns:
+            random rule object
+        """
+        permit = choice([True, False])
+        active = choice([True, False])
+        protocol = choice([i for i in range(0, 256) if i not in [1, 6, 17, 58]])
+        if choice([4, 6]) == 6:
+            if choice([True, False]):
+                src = IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)
+            else:
+                src = IPNetwork(
+                    f"{IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)}/{randint(1, 127)}").cidr
+            if choice([True, False]):
+                dst = IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)
+            else:
+                dst = IPNetwork(
+                    f"{IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)}/{randint(1, 127)}").cidr
+        else:
+            if choice([True, False]):
+                src = IPAddress(randint(0, 4294967295), version=4)
+            else:
+                src = IPNetwork(f"{IPAddress(randint(0, 4294967295))}/{randint(0, 31)}", version=4).cidr
+            if choice([True, False]):
+                dst = IPAddress(randint(0, 4294967295), version=4)
+            else:
+                dst = IPNetwork(f"{IPAddress(randint(0, 4294967295))}/{randint(0, 31)}", version=4).cidr
+        log = RuleLogging(choice([level for level in LogLevel]), randint(1, 300))
+        position = randint(0, 65535)
+        objectid = randint(0, 4294967295)
+        rule = cls(permit=permit, protocol=protocol, src=src, dst=dst, logging=log, active=active, position=position,
+                   objectid=objectid)
+        return rule
 
 
 class RuleTCPUDP(RuleGeneric):
@@ -430,7 +528,7 @@ class RuleTCPUDP(RuleGeneric):
         return protocol, port, comparator
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict) -> object:
         permit = data["permit"]
         src = data["sourceAddress"]["value"]
         dst = data["destinationAddress"]["value"]
@@ -444,6 +542,12 @@ class RuleTCPUDP(RuleGeneric):
         objectid = int(data["objectId"]) if "objectId" in data else 0
         return cls(permit, protocol, src, dst, src_port, dst_port, src_comparator, dst_comparator, remark, active,
                    logging, position, is_access_rule, objectid)
+
+    def to_cli(self, acl: [None, str] = None) -> str:
+        src_port = "" if self.src_port == -1 else f"{self.src_comparator.to_cli()} {self.src_port_alias}"
+        dst_port = "" if self.dst_port == -1 else f"{self.dst_comparator.to_cli()} {self.dst_port_alias}"
+        result = f"{'' if acl is None else f'access-list {acl}'} extended {'permit' if self.permit else 'deny'} {self.protocol_alias} {self.src.to_cli()} {src_port} {self.dst.to_cli()} {dst_port} {self.logging.to_cli()} {'inactive' if not self.active else ''}"
+        return result.strip().replace("  ", " ")
 
     def to_dict(self) -> dict:
         result = RuleGeneric.to_dict(self)
@@ -521,6 +625,55 @@ class RuleTCPUDP(RuleGeneric):
                     if item.dst_port > self.dst_port:
                         return False
         return True
+
+    @classmethod
+    def random_rule(cls) -> object:
+        """
+        Return a random TCP or UDP rule, with all values besides remark and is_access_rule randomly chosen.
+
+        Mainly used for testing
+
+        Returns:
+            random rule object
+        """
+        permit = choice([True, False])
+        active = choice([True, False])
+        protocol = choice(["tcp", "udp"])
+        if choice([4, 6]) == 6:
+            if choice([True, False]):
+                src = IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)
+            else:
+                src = IPNetwork(
+                    f"{IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)}/{randint(1, 127)}").cidr
+            if choice([True, False]):
+                dst = IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)
+            else:
+                dst = IPNetwork(
+                    f"{IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)}/{randint(1, 127)}").cidr
+        else:
+            if choice([True, False]):
+                src = IPAddress(randint(0, 4294967295), version=4)
+            else:
+                src = IPNetwork(f"{IPAddress(randint(0, 4294967295))}/{randint(0, 31)}", version=4).cidr
+            if choice([True, False]):
+                dst = IPAddress(randint(0, 4294967295), version=4)
+            else:
+                dst = IPNetwork(f"{IPAddress(randint(0, 4294967295))}/{randint(0, 31)}", version=4).cidr
+        src_port = randint(0, 65535)
+        if src_port == 0:
+            src_port = -1
+        dst_port = randint(0, 65535)
+        if dst_port == 0:
+            dst_port = -1
+        src_comp = choice([comp for comp in ServiceComparator])
+        dst_comp = choice([comp for comp in ServiceComparator])
+        log = RuleLogging(choice([level for level in LogLevel]), randint(1, 300))
+        position = randint(0, 65535)
+        objectid = randint(0, 4294967295)
+        rule = cls(permit=permit, protocol=protocol, src=src, dst=dst, src_port=src_port, dst_port=dst_port,
+                   src_comparator=src_comp, dst_comparator=dst_comp, logging=log, active=active,
+                   position=position, objectid=objectid)
+        return rule
 
 
 class RuleICMP(RuleGeneric):
@@ -626,7 +779,7 @@ class RuleICMP(RuleGeneric):
             protocol = data["value"]
             icmp_type = -1
             icmp_code = -1
-        elif data["kind"] == "ICMPService":
+        elif data["kind"] in ["ICMPService", "ICMP6Service"]:
             finder = regex.match(data["value"])
             if finder is not None:
                 protocol = finder.group(1)
@@ -657,6 +810,17 @@ class RuleICMP(RuleGeneric):
         return cls(permit, protocol, src, dst, icmp_type, icmp_code, remark, active, logging, position, is_access_rule,
                    objectid)
 
+    def to_cli(self, acl: [None, str] = None) -> str:
+        if self.icmp_type == -1:
+            icmp = ""
+        else:
+            if self.icmp_code == -1:
+                icmp = f"{self.icmp_type_alias}"
+            else:
+                icmp = f"{self.icmp_type_alias} {self.icmp_code}"
+        result = f"{'' if acl is None else f'access-list {acl}'} extended {'permit' if self.permit else 'deny'} {self.protocol_alias} {self.src.to_cli()} {self.dst.to_cli()} {icmp} {self.logging.to_cli()} {'inactive' if not self.active else ''}"
+        return result.strip().replace("  ", " ")
+
     def to_dict(self) -> dict:
         result = RuleGeneric.to_dict(self)
         result["sourceService"] = {"kind": "NetworkProtocol", "value": self.protocol_alias}
@@ -665,12 +829,12 @@ class RuleICMP(RuleGeneric):
         else:
             if self._icmp_code == -1:
                 result["destinationService"] = {
-                    "kind": "ICMPService",
+                    "kind": f"{self.protocol_alias.upper()}Service",
                     "value": f"{self.protocol_alias}/{self.icmp_type_alias}"
                 }
             else:
                 result["destinationService"] = {
-                    "kind": "ICMPService",
+                    "kind": f"{self.protocol_alias.upper()}Service",
                     "value": f"{self.protocol_alias}/{self.icmp_type_alias}/{self.icmp_code}"
                 }
         return result
@@ -687,3 +851,56 @@ class RuleICMP(RuleGeneric):
                 if item.icmp_code != self.icmp_code:
                     return False
         return True
+
+    @classmethod
+    def random_rule(cls) -> object:
+        """
+        Return a random ICMP or ICMP6 rule, with all values besides remark and is_access_rule randomly chosen.
+
+        Mainly used for testing
+
+        Returns:
+            random rule object
+        """
+        permit = choice([True, False])
+        active = choice([True, False])
+        protocol = choice(["icmp", "icmp6"])
+        if protocol == "icmp6":
+            if choice([True, False]):
+                src = IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)
+            else:
+                src = IPNetwork(
+                    f"{IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)}/{randint(1, 127)}").cidr
+            if choice([True, False]):
+                dst = IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)
+            else:
+                dst = IPNetwork(
+                    f"{IPAddress(randint(0, 340282366920938463463374607431768211455), version=6)}/{randint(1, 127)}").cidr
+        else:
+            if choice([True, False]):
+                src = IPAddress(randint(0, 4294967295), version=4)
+            else:
+                src = IPNetwork(f"{IPAddress(randint(0, 4294967295))}/{randint(0, 31)}", version=4).cidr
+            if choice([True, False]):
+                dst = IPAddress(randint(0, 4294967295), version=4)
+            else:
+                dst = IPNetwork(f"{IPAddress(randint(0, 4294967295))}/{randint(0, 31)}", version=4).cidr
+        icmp_type = randint(-1, 255)
+        icmp_code = randint(-1, 255)
+        log = RuleLogging(choice([level for level in LogLevel]), randint(1, 300))
+        position = randint(0, 65535)
+        objectid = randint(0, 4294967295)
+        rule = cls(permit=permit, protocol=protocol, src=src, dst=dst, icmp_type=icmp_type, icmp_code=icmp_code,
+                   logging=log, active=active, position=position, objectid=objectid)
+        return rule
+
+
+def rule_from_dict(data: dict) -> RuleGeneric:
+    if any(any(proto in value for proto in ("tcp", "udp")) for value in
+           (data["sourceService"]["value"], data["destinationService"]["value"])):
+        return RuleTCPUDP.from_dict(data)
+    elif any(any(proto in value for proto in ("icmp", "icmp6")) for value in
+             (data["sourceService"]["value"], data["destinationService"]["value"])):
+        return RuleICMP.from_dict(data)
+    else:
+        return RuleGeneric.from_dict(data)

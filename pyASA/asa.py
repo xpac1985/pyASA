@@ -11,6 +11,11 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 
 class ASA(object):
+    """
+    Central class, which is the starting point for everything in pyASA.
+    An instance of ASA class allows for connection setup and includes all other modules.
+    """
+
     def __init__(self, host: str, user: str, password: str, port: int = 443, use_https: bool = True,
                  url_prefix: str = "/", validate_cert: bool = True, debug: bool = False, timeout: int = 10,
                  retries: int = 2):
@@ -19,6 +24,7 @@ class ASA(object):
         if debug:
             self._logger.setLevel(logging.DEBUG)
 
+        # Create variables and set to defaults in case of uncaught failure
         self._host = ""
         self._user = ""
         self._password = ""
@@ -30,6 +36,7 @@ class ASA(object):
         self._timeout = 10
         self._retries = 2
 
+        # Set variables to provided values
         self._caller = None
         self.host = host
         self.user = user
@@ -41,10 +48,10 @@ class ASA(object):
         self.debug = debug
         self.timeout = timeout
         self.retries = retries
-        self._caller = Caller(self.baseurl, self._http_auth, self.validate_cert, self.debug, self.timeout, self.retries)
+        self._caller = Caller(self.baseurl, self._http_auth, self.validate_cert, self.timeout, self.retries)
         self.acl = ACL(self._caller)
 
-    ### Property getters and setters ###
+    # Property getters and setters #
 
     @property
     def host(self) -> str:
@@ -54,7 +61,7 @@ class ASA(object):
         Setter strips whitespace and checks if string is actually a valid hostname or IP, else raises ValueError.
 
         Returns:
-            str: Sanitized hostname as used in HTTP connections.
+            Sanitized hostname as used in HTTP connections
         """
         return self._host
 
@@ -76,7 +83,7 @@ class ASA(object):
         Setter strips whitespace.
 
         Returns:
-            str: Sanitized username as used in HTTP(S) connections.
+            Sanitized username as used in HTTP(S) connections
         """
         return self._user
 
@@ -94,7 +101,7 @@ class ASA(object):
         Setter strips whitespace.
 
         Returns:
-            str: Sanitized password as used in HTTP(S) authentication.
+            Sanitized password as used in HTTP(S) authentication
         """
         return self._password
 
@@ -110,7 +117,7 @@ class ASA(object):
         Return/set use of HTTPS instead of HTTP for API requests.
 
         Returns:
-            bool: True if HTTPS is used, False if not
+            True if HTTPS is used, False if not
         """
         return self._use_https
 
@@ -128,7 +135,7 @@ class ASA(object):
         Setter checks if port is in range 1..65535.
 
         Returns:
-            int: Port number used for API requests.
+            Port number used for API requests
         """
         return self._port
 
@@ -150,27 +157,27 @@ class ASA(object):
         Setter validates that there is either no prefix or one starting and ending with a '/'
 
         Returns:
-            str: Sanitized prefix used for API requests.
+            Sanitized prefix used for API requests
         """
         return self._url_prefix
 
     @url_prefix.setter
     def url_prefix(self, url_prefix: str):
-        """Ensures that url_prefix is either '' or starts with a '/' and ends without '/' and contains no double '/'"""
-        temp_url_prefix = re.sub(r'/{2,}', r'/', str(url_prefix).strip())
-        if temp_url_prefix in ("", None):
+        # Replace // with single /
+        url_prefix = re.sub(r'/{2,}', r'/', str(url_prefix).strip())
+        if url_prefix in ("", None):
             self._url_prefix = ""
         else:
-            if temp_url_prefix[0] == "/":
-                if temp_url_prefix[-1:] == "/":
-                    self._url_prefix = temp_url_prefix[:-1]
+            if url_prefix[0] == "/":
+                if url_prefix[-1:] == "/":
+                    self._url_prefix = url_prefix[:-1]
                 else:
-                    self._url_prefix = f"{temp_url_prefix}"
+                    self._url_prefix = f"{url_prefix}"
             else:
-                if temp_url_prefix[-1:] == "/":
-                    self._url_prefix = f"/{temp_url_prefix}"
+                if url_prefix[-1:] == "/":
+                    self._url_prefix = f"/{url_prefix}"
                 else:
-                    self._url_prefix = f"/{temp_url_prefix}[:-1]"
+                    self._url_prefix = f"/{url_prefix}[:-1]"
         if self._caller:
             self._caller.update(baseurl=self.baseurl)
 
@@ -182,7 +189,7 @@ class ASA(object):
         Necessary if ASA uses self-signed or otherwise invalid SSL certificates.
 
         Returns:
-            bool: True if certificate validation is active, False if not.
+            True if certificate validation is active, False if not
         """
         return self._validate_cert
 
@@ -190,6 +197,7 @@ class ASA(object):
     def validate_cert(self, validate_cert: bool):
         self._validate_cert = bool(validate_cert)
         if not validate_cert:
+            # Warnings in urllib3 can only be disabled, not reenabled
             urllib3.disable_warnings(InsecureRequestWarning)
         if self._caller:
             self._caller.update(validate_cert=self._validate_cert)
@@ -202,15 +210,13 @@ class ASA(object):
         If True, logger will output a lot of debug information for analysis.
 
         Returns:
-            bool: True if debug is enabled, False if not.
+            True if debug is enabled, False if not
         """
         return self._debug
 
     @debug.setter
     def debug(self, debug: bool):
         self._debug = bool(debug)
-        if self._caller:
-            self._caller.update(debug=self._debug)
 
     @property
     def timeout(self) -> int:
@@ -220,7 +226,7 @@ class ASA(object):
         Setter checks if value is within range of 1..300 seconds.
 
         Returns:
-            int: Timeout used for API requests.
+            Timeout used for API requests
         """
         return self._timeout
 
@@ -241,16 +247,16 @@ class ASA(object):
         As the ASA API agent tends to crash especially on bulk operations, some retries are made before failing.
 
         Returns:
-            int: Count of retries for bulk API requests.
+            Count of retries for bulk API requests
         """
         return self._retries
 
     @retries.setter
     def retries(self, retries: int):
         if not isinstance(retries, int):
-            raise ValueError(f"{retries} is outside of valid timeout range 0.001 - 300 seconds")
-        if not (0 <= retries <= 8):
-            raise ValueError(f"retries must be in range 0..8")
+            raise ValueError(f"{type(retries)} is not a valid retry argument type")
+        if not (0 <= retries <= 10):
+            raise ValueError(f"retries must be in range 0..10")
         self._retries = int(retries)
         if self._caller:
             self._caller.update(retries=self._retries)
@@ -258,10 +264,10 @@ class ASA(object):
     @property
     def baseurl(self) -> str:
         """
-        Return URL used for API requests, madeup of configured host, port, HTTP/HTTPs and url prefix.
+        Return URL used for API requests, composed from configured host, port, HTTP/HTTPs and url prefix.
 
         Returns:
-            str: URL used for API requests
+            URL used for API requests
         """
         if self.use_https:
             return f"https://{self.host}{f':{self.port}' if self.port != 443 else ''}{self.url_prefix}/api"
@@ -269,21 +275,20 @@ class ASA(object):
             return f"http://{self.host}{f':{self.port}' if self.port != 80 else ''}{self.url_prefix}/api"
 
     @property
-    def _http_auth(self) -> tuple:
+    def _http_auth(self) -> (str, str):
         return self.user, self.password
 
     ### Methods ###
 
-    @LogMe
     def save_config(self):
         """
-        Call API to make the ASA write the running config to the startup config file
-
-        Convenience method - the actual work is done in Caller.save_config()
+        Call API to make the ASA write the running config to the startup config file.
         """
-        self._caller.save_config()
+        response = self._caller.post("commands/writemem")
+        if response.status_code != requests.codes.ok:
+            raise RuntimeError(
+                f"Config save failed with HTTP {response.status_code}: {response.json()}")
 
-    @LogMe
     def get_management_access_info(self) -> dict:
         """
         Get ASA management settings via API call.
@@ -291,14 +296,13 @@ class ASA(object):
         Returns a dictionary containing several settings for management access, like SSH, HTTP(S) and others.
 
         Returns:
-            dict: Dict containing ASA management settings.
+            dict containing ASA management settings
         """
         response = self._caller.get("mgmtaccess")
         if response.status_code != requests.codes.ok:
-            raise RuntimeError(f"Fetching management access settings with HTTP {response.status_code}")
+            raise RuntimeError(f"Fetching management access settings failed with HTTP {response.status_code}")
         return response.json()
 
-    @LogMe
     def test_connection(self) -> bool:
         """
         Check if connection to ASA can be established.
@@ -306,7 +310,7 @@ class ASA(object):
         Checks if use of HTTPS and port number match and logs a warning if they don't.
 
         Returns:
-            bool: True if connection could be made, False if not.
+            bool: True if connection could be made, False if not
         """
         if self.use_https and self.port == 80:
             self._logger.warning("You are using HTTPS with port 80. This is most likely not correct.")

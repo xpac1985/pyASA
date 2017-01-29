@@ -3,6 +3,14 @@ import logging
 
 
 class LogMe(object):
+    """
+    NOT IN USE due to major bugs
+
+    Utility class returning a decorator that can be attached to functions and methods.
+
+    Causes every decorated function/method to log a debug message when it's started and when it's finished
+    """
+
     def __init__(self, f):
         self.f = f
         self.logger = logging.getLogger("pyASA")

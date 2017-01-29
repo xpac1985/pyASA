@@ -14,11 +14,24 @@ class LogLevel(Enum):
     INFORMATIONAL = "Informational"
     DEBUGGING = "Debugging"
 
+    def to_cli(self):
+        if self.value == "Disabled":
+            return "disable"
+        elif self.value == "Default":
+            return self.value
+        else:
+            return self.value.lower()
+
+    @classmethod
+    def from_cli(cls, line: str) -> object:
+        if line == "disable":
+            return LogLevel.DISABLE
+        else:
+            return LogLevel[line.upper()]
+
 
 class RuleLogging(BaseConfigObject):
-    __interval_default = 300
-
-    def __init__(self, interval: int = 300, level: LogLevel = LogLevel.DEFAULT):
+    def __init__(self, level: LogLevel = LogLevel.DEFAULT, interval: int = 300):
         self._interval = 300
         self._level = LogLevel.DEFAULT
 
@@ -56,10 +69,13 @@ class RuleLogging(BaseConfigObject):
             raise ValueError(f"{type(level)} is not a valid argument type")
 
     @classmethod
-    def from_dict(cls, data: dict):
-        return cls(data["logInterval"], LogLevel[data["logStatus"].upper()])
+    def from_dict(cls, data: dict) -> object:
+        return cls(LogLevel(data["logStatus"].capitalize()), data["logInterval"])
 
-    def to_dict(self):
+    def to_cli(self) -> str:
+        return f"log {self.level.to_cli()} interval {self.interval}"
+
+    def to_dict(self) -> dict:
         return {"logStatus": self._level.value, "logInterval": self._interval}
 
     def __eq__(self, other):
@@ -71,3 +87,7 @@ class RuleLogging(BaseConfigObject):
             return self.to_dict() == other
         else:
             return False
+
+    @classmethod
+    def from_cli(cls, interval: int, level: str) -> object:
+        return cls(interval, LogLevel.from_cli(level))
