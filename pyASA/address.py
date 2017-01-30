@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import Dict, Union
 
+import copy
 from netaddr import IPAddress, IPNetwork
 from pyASA.baseconfigobject import BaseConfigObject
 
@@ -150,3 +151,16 @@ class Address(BaseAddress, IPNetwork):
             return {"kind": "AnyIPAddress", "value": f"any{self.version}"}
         else:
             return {"kind": f"IPv{self.version}Network", "value": str(self.cidr)}
+
+def parse_address(address: Union[str, IPAddress, IPNetwork, BaseAddress]):
+    if isinstance(address, str):
+        if address == "any":
+            return AnyAddress()
+        else:
+            return Address(address)
+    elif isinstance(address, BaseAddress):
+        return copy.deepcopy(address)
+    elif isinstance(address, (IPAddress, IPNetwork)):
+        return Address(address)
+    else:
+        raise TypeError(f"{type(address)} is not a valid argument type")

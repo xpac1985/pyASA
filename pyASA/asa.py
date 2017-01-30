@@ -159,6 +159,7 @@ class ASA(object):
         if url_prefix in ("", None):
             self._caller.url_prefix = ""
         else:
+            # Ensure that url_prefix starts and ends with /
             if url_prefix[0] == "/":
                 if url_prefix[-1:] == "/":
                     self._caller.url_prefix = url_prefix
@@ -235,7 +236,7 @@ class ASA(object):
             raise ValueError(f"{timeout} is outside of valid timeout range 1 - 300 seconds")
 
     @property
-    def retries(self):
+    def retries(self) -> int:
         """
         Return/set retries when an bulk API request fails.
 
@@ -275,7 +276,7 @@ class ASA(object):
 
     def save_config(self):
         """
-        Call API to make the ASA write the running config to the startup config file.
+        Have the ASA write the running config to the startup config file.
         """
         response = self._caller.post("commands/writemem")
         if response.status_code != requests.codes.ok:

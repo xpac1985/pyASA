@@ -10,7 +10,7 @@ class BaseConfigObject(ABC):
 
     @classmethod
     @abstractmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict) -> "BaseConfigObject":
         raise NotImplementedError()
 
     @abstractmethod

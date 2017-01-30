@@ -1,7 +1,7 @@
 import json
 import logging
 from time import sleep
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Union
 
 import requests
 
@@ -123,7 +123,7 @@ class Caller(object):
                 sleep(tries)
         return response
 
-    def post(self, url: str, data: Optional[Dict, List] = None) -> requests.Response:
+    def post(self, url: str, data: Union[None, Dict, List] = None) -> requests.Response:
         """
         Call API using HTTP POST with baseurl plus supplied url argument, return Response object
 
