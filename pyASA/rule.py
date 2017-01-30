@@ -510,7 +510,7 @@ class RuleICMP(RuleGeneric):
     def __init__(self, permit: bool = False, protocol: Union[int, str] = "icmp",
                  src: Union[str, IPAddress, IPNetwork, BaseAddress] = "any",
                  dst: Union[str, IPAddress, IPNetwork, BaseAddress] = "any", icmp_type: Union[str, int] = "any",
-                 icmp_code: Union[str, int] = "any", remark: Union[None, str, list] = None, active: bool = True,
+                 icmp_code: Union[int, str] = "any", remark: Union[None, str, list] = None, active: bool = True,
                  logging: Optional[RuleLogging] = None, position: int = 0, is_access_rule: bool = False,
                  objectid: int = 0):
 
@@ -607,7 +607,7 @@ class RuleICMP(RuleGeneric):
         return self._icmp_code
 
     @icmp_code.setter
-    def icmp_code(self, icmp_code: Union[int, str]):
+    def icmp_code(self, icmp_code: Union[str, int]):
         if isinstance(icmp_code, str) and (icmp_code.isdigit() or icmp_code == "-1"):
             icmp_code = int(icmp_code)
         if isinstance(icmp_code, str):
@@ -1211,7 +1211,7 @@ def rule_from_cli(line: str) -> RuleGeneric:
      Invokes class specific from_rule() and returns the object.
 
     Args:
-        data: CLI line to determine rule type from, structured like the JSON responses from the API
+        line: CLI line to determine rule type from, structured like the JSON responses from the API
 
     Returns:
         rule object equivalent to the provided data

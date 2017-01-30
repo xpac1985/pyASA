@@ -152,6 +152,7 @@ class Address(BaseAddress, IPNetwork):
         else:
             return {"kind": f"IPv{self.version}Network", "value": str(self.cidr)}
 
+
 def parse_address(address: Union[str, IPAddress, IPNetwork, BaseAddress]):
     if isinstance(address, str):
         if address == "any":
