@@ -46,6 +46,6 @@ class Test_ACL(object):
             src_comp = choice([comp for comp in ServiceComparator])
             dst_comp = choice([comp for comp in ServiceComparator])
             rule = RuleTCPUDP(protocol=protocol, src=src, dst=dst, src_port=i, dst_port=dst_port,
-                              src_comparator=src_comp, dst_comparator=dst_comp)
+                              src_comp=src_comp, dst_comp=dst_comp)
             rules.append(rule)
         asa.acl.append_rules(settings.test_acl, rules)

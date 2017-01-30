@@ -33,7 +33,7 @@ class Test_RuleGeneric(object):
         assert generic_rule.src == Address("10.1.2.0/24")
         with pytest.raises(ValueError):
             generic_rule.src = "something strange"
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.src = None
 
     def test_get_dst(self, generic_rule: RuleGeneric):
@@ -46,7 +46,7 @@ class Test_RuleGeneric(object):
         assert generic_rule.dst == Address("10.1.2.0/24")
         with pytest.raises(ValueError):
             generic_rule.dst = "something strange"
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.dst = None
 
     def test_get_permit(self, generic_rule: RuleGeneric):
@@ -55,9 +55,9 @@ class Test_RuleGeneric(object):
     def test_set_permit(self, generic_rule: RuleGeneric):
         generic_rule.permit = False
         assert generic_rule.permit is False
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.permit = "bullshit"
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.permit = None
 
     def test_get_active(self, generic_rule: RuleGeneric):
@@ -66,9 +66,9 @@ class Test_RuleGeneric(object):
     def test_set_active(self, generic_rule: RuleGeneric):
         generic_rule.active = False
         assert generic_rule.active is False
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.active = "bullshit"
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.active = None
 
     def test_get_objectid(self, generic_rule: RuleGeneric):
@@ -107,7 +107,7 @@ class Test_RuleGeneric(object):
         generic_rule.logging = None
         assert generic_rule.logging.interval == 300
         assert generic_rule.logging.level == LogLevel.DEFAULT
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.logging = 6
 
     def test_get_protocol(self, generic_rule: RuleGeneric):
@@ -136,7 +136,7 @@ class Test_RuleGeneric(object):
             generic_rule.protocol = 58
         with pytest.raises(ValueError):
             generic_rule.protocol = -37
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.protocol = None
 
     def test_get_protocol_alias(self, generic_rule: RuleGeneric):
@@ -154,9 +154,9 @@ class Test_RuleGeneric(object):
         assert generic_rule.remark == ["Line 1", "Line 2"]
         generic_rule.remark = None
         assert generic_rule.remark == []
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.remark = 6
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.remark = {1: "Line", 2: "Line"}
 
     def test_get_position(self, generic_rule: RuleGeneric):
@@ -173,13 +173,10 @@ class Test_RuleGeneric(object):
             generic_rule.position = "5"
 
     def test_parse_protocol_json(self):
-        data = {"kind": "NetworkProtocol", "value": "eigrp"}
-        assert RuleGeneric._parse_protocol_json(data) == 88
-        data = {"kind": "NetworkProtocol", "value": "64"}
-        assert RuleGeneric._parse_protocol_json(data) == 64
-        data = {"kind": "NetworkProtocol", "value": "echo"}
+        assert RuleGeneric._parse_protocol_json("eigrp") == 88
+        assert RuleGeneric._parse_protocol_json("64") == 64
         with pytest.raises(ValueError):
-            RuleGeneric._parse_protocol_json(data)
+            RuleGeneric._parse_protocol_json("echo")
 
     def test_to_cli(self, generic_rule: RuleGeneric):
         assert generic_rule.to_cli() == "extended permit eigrp 192.168.23.0 255.255.255.0 192.168.24.0 255.255.255.0 log debugging interval 60 inactive"
@@ -192,6 +189,8 @@ class Test_RuleGeneric(object):
                 'destinationService': {'kind': 'NetworkProtocol', 'value': 'eigrp'}, 'active': False,
                 'remarks': ['EIGRP Test Rule'], 'ruleLogging': {'logStatus': 'Debugging', 'logInterval': 60},
                 'position': 17, 'isAccessRule': True, 'objectId': 1234567}
+        print(generic_rule)
+        print(rule_from_dict(data))
         assert generic_rule == rule_from_dict(data)
 
     def test_to_dict(self, generic_rule: RuleGeneric):
@@ -210,7 +209,7 @@ class Test_RuleGeneric(object):
         assert not generic_rule == RuleGeneric()
 
     def test_contains(self, generic_rule: RuleGeneric):
-        rule = generic_rule.copy()
+        rule = generic_rule.clone()
         assert rule in generic_rule
         generic_rule.protocol = 0
         assert rule in generic_rule
@@ -286,7 +285,7 @@ class Test_RuleTCPUDP(object):
             generic_rule.src_port = -2
         with pytest.raises(ValueError):
             generic_rule.src_port = 65536
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.src_port = None
 
     def test_get_dst_port(self, generic_rule: RuleTCPUDP):
@@ -309,7 +308,7 @@ class Test_RuleTCPUDP(object):
             generic_rule.dst_port = -2
         with pytest.raises(ValueError):
             generic_rule.dst_port = 65536
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             generic_rule.dst_port = None
 
     def test_get_protocol(self, generic_rule: RuleTCPUDP):
@@ -358,26 +357,26 @@ class Test_RuleTCPUDP(object):
         assert generic_rule.dst_port_alias == "3859"
 
     def test_src_comparator(self, generic_rule: RuleTCPUDP):
-        assert generic_rule.src_comparator == ServiceComparator.EQUAL
-        generic_rule.src_comparator = ServiceComparator.LESSER
-        assert generic_rule.src_comparator == ServiceComparator.LESSER
-        generic_rule.src_comparator = ">"
-        assert generic_rule.src_comparator == ServiceComparator.GREATER
+        assert generic_rule.src_comp == ServiceComparator.EQUAL
+        generic_rule.src_comp = ServiceComparator.LESSER
+        assert generic_rule.src_comp == ServiceComparator.LESSER
+        generic_rule.src_comp = ">"
+        assert generic_rule.src_comp == ServiceComparator.GREATER
         with pytest.raises(ValueError):
-            generic_rule.src_comparator = None
+            generic_rule.src_comp = None
         with pytest.raises(ValueError):
-            generic_rule.src_comparator = "<<"
+            generic_rule.src_comp = "<<"
 
     def test_dst_comparator(self, generic_rule: RuleTCPUDP):
-        assert generic_rule.dst_comparator == ServiceComparator.EQUAL
-        generic_rule.dst_comparator = ServiceComparator.LESSER
-        assert generic_rule.dst_comparator == ServiceComparator.LESSER
-        generic_rule.dst_comparator = ">"
-        assert generic_rule.dst_comparator == ServiceComparator.GREATER
+        assert generic_rule.dst_comp == ServiceComparator.EQUAL
+        generic_rule.dst_comp = ServiceComparator.LESSER
+        assert generic_rule.dst_comp == ServiceComparator.LESSER
+        generic_rule.dst_comp = ">"
+        assert generic_rule.dst_comp == ServiceComparator.GREATER
         with pytest.raises(ValueError):
-            generic_rule.dst_comparator = None
+            generic_rule.dst_comp = None
         with pytest.raises(ValueError):
-            generic_rule.dst_comparator = "<<"
+            generic_rule.dst_comp = "<<"
 
     def test_parse_port_json(self):
         data = {"kind": "NetworkProtocol", "value": "tcp"}
@@ -421,7 +420,7 @@ class Test_RuleTCPUDP(object):
         assert generic_rule.to_dict() == data
 
     def test_contains(self, generic_rule: RuleTCPUDP):
-        rule = generic_rule.copy()
+        rule = generic_rule.clone()
         assert rule in generic_rule
         generic_rule.src = "any"
         assert rule in generic_rule
@@ -431,13 +430,13 @@ class Test_RuleTCPUDP(object):
         assert rule in generic_rule
         rule.src_port = "80"
         assert rule in generic_rule
-        rule.src_comparator = ServiceComparator.NOT_EQUAL
+        rule.src_comp = ServiceComparator.NOT_EQUAL
         assert rule in generic_rule
         generic_rule.dst_port = 21
         assert rule not in generic_rule
-        generic_rule.dst_comparator = ServiceComparator.GREATER
+        generic_rule.dst_comp = ServiceComparator.GREATER
         assert rule in generic_rule
-        rule.dst_comparator = ServiceComparator.LESSER
+        rule.dst_comp = ServiceComparator.LESSER
         assert rule not in generic_rule
         rule.dst_port = -1
         assert rule not in generic_rule
@@ -445,13 +444,13 @@ class Test_RuleTCPUDP(object):
         assert rule not in generic_rule
         generic_rule.dst_port = "any"
         assert rule in generic_rule
-        rule.dst_comparator = ServiceComparator.NOT_EQUAL
+        rule.dst_comp = ServiceComparator.NOT_EQUAL
         rule.dst_port = 17
         assert rule in generic_rule
-        generic_rule.dst_comparator = ServiceComparator.LESSER
+        generic_rule.dst_comp = ServiceComparator.LESSER
         generic_rule.dst_port = 36
         assert rule not in generic_rule
-        rule.dst_comparator = ServiceComparator.EQUAL
+        rule.dst_comp = ServiceComparator.EQUAL
         assert rule in generic_rule
         rule.objectid = 7654321
         rule.is_access_rule = False
@@ -623,7 +622,7 @@ class Test_RuleICMP(object):
         assert generic_rule.to_dict() == data
 
     def test_contains(self, generic_rule: RuleICMP):
-        rule = generic_rule.copy()
+        rule = generic_rule.clone()
         assert rule in generic_rule
         rule.icmp_code = -1
         assert rule not in generic_rule
