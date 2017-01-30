@@ -17,7 +17,7 @@ class ASA(object):
     """
 
     def __init__(self, host: str, user: str, password: str, port: int = 443, use_https: bool = True,
-                 url_prefix: str = "/", validate_cert: bool = True, debug: bool = False, timeout: int = 10,
+                 url_prefix: str = "", validate_cert: bool = True, debug: bool = False, timeout: int = 10,
                  retries: int = 2):
 
         # Create used object instances
@@ -156,7 +156,7 @@ class ASA(object):
             raise ValueError(f"{type(url_prefix)} is not a valid url_prefix argument type")
         # Replace // with single /
         url_prefix = re.sub(r'/{2,}', r'/', str(url_prefix).strip())
-        if url_prefix in ("", None):
+        if url_prefix in ("", "/", None):
             self._caller.url_prefix = ""
         else:
             # Ensure that url_prefix starts and ends with /
@@ -228,7 +228,7 @@ class ASA(object):
 
     @timeout.setter
     def timeout(self, timeout: int):
-        if not isinstance(timeout, bool):
+        if not isinstance(timeout, int):
             raise ValueError(f"{type(timeout)} is not a valid timeout argument type")
         if 1 <= int(timeout) <= 300:
             self._caller.timeout = int(timeout)

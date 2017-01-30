@@ -82,10 +82,11 @@ class ACL(object):
         """
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
-        if not isinstance(objectids, (None, list)):
+        if not isinstance(objectids, (type(None), list)):
             raise ValueError(f"{type(acl)} is not a valid objectids argument type")
-        if not all([isinstance(objectid, int) for objectid in objectids]):
-            raise ValueError("objectids argument list contains non-int object")
+        if isinstance(objectids, list):
+            if not all([isinstance(objectid, int) for objectid in objectids]):
+                raise ValueError("objectids argument list contains non-int object")
         if objectids is None:
             rules = self.get_rules(acl)
             objectids = [rule.objectid for rule in rules]

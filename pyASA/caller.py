@@ -28,7 +28,7 @@ class Caller(object):
         self.password = ""
         self.use_https = True
         self.port = 443
-        self.url_prefix = "/"
+        self.url_prefix = ""
         self.validate_cert = True
         self.timeout = 10
         self.retries = 2

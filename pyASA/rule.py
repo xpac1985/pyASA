@@ -362,9 +362,9 @@ class RuleGeneric(BaseConfigObject):
         remark = data["remarks"]
         active = data["active"]
         logging = RuleLogging.from_dict(data["ruleLogging"]) if "ruleLogging" in data else None
-        position = data.get("position", 0)
-        is_access_rule = data.get("isAccessRule", False)
-        objectid = data.get("objectId", 0)
+        position = int(data.get("position", 0))
+        is_access_rule = bool(data.get("isAccessRule", False))
+        objectid = int(data.get("objectId", 0))
         return cls(permit, protocol, src, dst, remark, active, logging, position, is_access_rule, objectid)
 
     def to_cli(self, acl: Optional[str] = None) -> str:
@@ -575,7 +575,7 @@ class RuleICMP(RuleGeneric):
             if icmp_type in Aliases.by_alias[self.protocol_alias]:
                 self._icmp_type = Aliases.by_alias[self.protocol_alias][icmp_type]
             else:
-                raise ValueError(f"{type} is not a valid {self.protocol_alias} service alias")
+                raise ValueError(f"{icmp_type} is not a valid {self.protocol_alias} service alias")
         elif isinstance(icmp_type, int):
             if -1 <= icmp_type <= 255:
                 self._icmp_type = int(icmp_type)
@@ -1218,7 +1218,7 @@ def rule_from_cli(line: str) -> RuleGeneric:
     """
     # very complex regular expression roughly validating and seperating valid ASA ACL CLI lines.
     # For understanding and debugging see https://regex101.com/ or https://www.debuggex.com/
-    cli_line_regex = r"^(?:(?:access-list (?P<acl>[\w\d]+) (?:line (?P<line>\d+) )?)?extended )?(?P<permit>deny|permit) (?P<proto>\w+) (?P<src>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?: (?P<srccomp>eq|neq|gt|lt) (?P<srcport>\d{1,5}|[\d\w-]+))? (?P<dst>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?:(?: (?P<dstcomp>eq|neq|gt|lt) (?P<dstport>\d{1,5}|[\d\w-]+))|\s(?P<icmptype>[a-z\d-]+)\s?(?P<icmpcode>\d{1,3})?)?(?: log (?P<level>\w+)(?: interval (?P<interval>\d+))?(?: (?P<active>inactive))?)?$"
+    cli_line_regex = r"^(?:(?:access-list (?P<acl>[\w\d]+) (?:line (?P<line>\d+) )?)?extended )?(?P<permit>deny|permit) (?P<proto>\w+) (?P<src>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?: (?P<srccomp>eq|neq|gt|lt) (?P<srcport>\d{1,5}|[\d\w-]+))? (?P<dst>any[46]?|host \d{1,3}(?:\.\d{1,3}){3}|\d{1,3}(?:\.\d{1,3}){3} \d{1,3}(?:\.\d{1,3}){3}|(?:host )?(?:[0-9a-f]{0,4}:){2,7}(?::|[0-9a-f]{0,4})(?:\/\d{1,3})?)(?:(?: (?P<dstcomp>eq|neq|gt|lt) (?P<dstport>\d{1,5}|[\d\w-]+))|\s(?P<icmptype>[a-z\d-]+)\s?(?P<icmpcode>\d{1,3})?)?(?: log (?P<level>\w+)(?: interval (?P<interval>\d+))?)?(?: (?P<active>inactive))?$"
     regex = re.compile(cli_line_regex)
     finder = regex.fullmatch(line)
     if finder is None:

@@ -120,7 +120,7 @@ class RuleLogging(BaseConfigObject):
         """
 
         if self.level in [LogLevel.DEFAULT, LogLevel.DISABLE]:
-            return f"{self.level.to_cli()}"
+            return f"log {self.level.to_cli()}"
         else:
             return f"log {self.level.to_cli()} interval {self.interval}"
 
