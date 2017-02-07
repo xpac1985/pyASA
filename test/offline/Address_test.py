@@ -23,9 +23,9 @@ class Test_Address(object):
             Address("asa.local")
         with pytest.raises(ValueError):
             Address("any")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             Address(3)
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             Address(None)
 
     def test_init_okay(self):

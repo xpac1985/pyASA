@@ -51,8 +51,15 @@ class AnyAddress(BaseAddress):
         Returns:
             True if contained, False if not
         """
-        if isinstance(item, [IPAddress, IPNetwork]):
+        if isinstance(item, (IPAddress, IPNetwork)):
             return True
+        elif isinstance(item, str):
+            try:
+                IPNetwork(item).__contains__(self)
+                return True
+            except:
+                return False
+
         else:
             return False
 
@@ -79,7 +86,7 @@ class Address(BaseAddress, IPNetwork):
         elif isinstance(address, IPNetwork):
             IPNetwork.__init__(self, address.cidr)
         else:
-            raise ValueError(f"{type(address)} is not a valid argument type")
+            raise TypeError(f"{type(address)} is not a valid argument type")
 
     @classmethod
     def from_cli(cls, line: str) -> "Address":

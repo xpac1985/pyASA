@@ -160,7 +160,6 @@ class Caller(object):
     def test_connection(self) -> bool:
         """
         Make a simple call to the API to test the connection to the ASA.
-
         Returns:
             True if successful, False if not
         """

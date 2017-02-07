@@ -76,9 +76,6 @@ class ACL(object):
         Args:
             acl: name of ACL from which rules are to be deleted
             objectids: list of ids of rules to be deleted, or None to delete whole ACL. Defaults to None
-
-        Returns:
-
         """
         if not isinstance(acl, str):
             raise ValueError(f"{type(acl)} is not a valid acl argument type")
@@ -199,12 +196,12 @@ class ACL(object):
             raise RuntimeError(
                 f"Appending rule to ACL {acl} failed with HTTP {response.status_code}: {response.json()}")
 
-    def append_rules(self, acl: str, rules: [RuleGeneric]):
+    def append_rules(self, acl: str, rules: List[RuleGeneric]):
         """
         Append multiple rules to an ACL.
 
         If more than 100 rule objects are given, appends in steps of 100 to circumvent API failure.
-         Enforces some wait time between step as API tends to fail if too many rules are submitted too quickly.
+         Enforces some wait time between steps as API tends to fail if too many rules are submitted too quickly.
 
         Args:
             acl: name of ACL which rules are to be appended to
